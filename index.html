@@ -405,12 +405,19 @@
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.3s;
+            opacity: 0;
         }
 
         .modal.visible {
             opacity: 1;
             pointer-events: auto;
         }
+
+        .modal.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
 
         .modal-content {
             background-color: white;
@@ -497,6 +504,31 @@
         .level-btn.completed {
             background-color: var(--success);
         }
+        .level-btn.wip {
+            background-color: var(--error);
+        }
+
+        .solution-button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+
+        .solution-button:hover {
+            background-color: var(--c43c25);
+        }
+        #download-debug-log {
+            background-color: var(--dark);
+        }
+
+        #download-debug-log:hover {
+            background-color: #555;
+        }
     </style>
 </head>
 <body>
@@ -504,13 +536,15 @@
         <header>
             <h1>
                 <svg width="30" height="30" viewBox="0 0 92 92" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M90.155 41.965L50.036 1.847c-2.434-2.434-6.376-2.434-8.81 0l-8.301 8.3 11.16 11.16c2.595-0.875 5.57-0.288 7.64 1.78 2.086 2.086 2.664 5.095 1.766 7.7l10.757 10.757c2.605-0.898 5.614-0.32 7.7 1.766 2.912 2.911 2.912 7.633 0 10.545-2.911 2.911-7.633 2.911-10.545 0-2.912-2.911-2.731-5.409-1.622-8.107l-10.039-10.039v26.358c0.711 0.351 1.383 0.826 1.971 1.412 2.912 2.911 2.912 7.633 0 10.545-2.911 2.911-7.634 2.911-10.545 0-2.912-2.912-2.912-7.634 0-10.545 0.724-0.724 1.56-1.268 2.446-1.631v-26.598c-0.886-0.363-1.722-0.907-2.446-1.631-2.2-2.199-2.732-5.428-1.612-8.145l-11-11-29.039 29.038c-2.434 2.434-2.434 6.377 0 8.811l40.12 40.119c2.435 2.433 6.376 2.433 8.81 0l39.933-39.934c2.433-2.435 2.433-6.376 0-8.81" fill="#f05033"/>
+                    <path d="M90.155 41.965L50.036 1.847c-2.434-2.434-6.376-2.434-8.81 0l-8.301 8.3 11.16 11.16c2.595-0.875 5.57-0.288 7.64 1.78 2.086 2.086 2.664 5.095 1.766 7.7l10.757 10.757c2.605-0.898 5.614-0.32 7.7 1.766 2.912 2.911 2.912 7.633 0 10.545-2.911 2.911-7.634 2.911-10.545 0-2.912-2.912-2.912-7.634 0-10.545 0.724-0.724 1.56-1.268 2.446-1.631v-26.598c-0.886-0.363-1.722-0.907-2.446-1.631-2.2-2.199-2.732-5.428-1.612-8.145l-11-11-29.039 29.038c-2.434 2.434-2.434 6.377 0 8.811l40.12 40.119c2.435 2.433 6.376 2.433 8.81 0l39.933-39.934c2.433-2.435 2.433-6.376 0-8.81" fill="#f05033"/>
                 </svg>
                 Git Command Challenge
             </h1>
             <nav>
                 <button id="help-btn">Help</button>
+                <button id="level-select-btn">Levels</button>
                 <button id="reset-btn">Reset</button>
+                <button id="download-debug-log">Download Debug Log</button>
             </nav>
         </header>
 
@@ -544,7 +578,7 @@
                         Please wait while we set up your environment.
                     </div>
                     <div class="progress">
-                        <span id="current-level">Level 1/10</span>
+                        <span id="current-level">Level 1/30</span>
                         <span id="completion-status">0% Complete</span>
                     </div>
                     <div class="progress-bar">
@@ -564,7 +598,7 @@
 
                     <div class="terminal-output" id="terminal-output">
                         <div>Welcome to Git Command Challenge!</div>
-                        <div>Type 'help' to see available commands or 'next' to skip to the next challenge.</div>
+                        <div>Type 'help' to see available commands or 'levels' to select level, 'next' to skip or 'solution' to show solution.</div>
                     </div>
 
                     <div class="terminal-prompt">
@@ -576,6 +610,7 @@
                     <div class="hints" id="hints">
                         Try using the "git" command followed by a subcommand.
                     </div>
+                    <button class="solution-button" id="solution-button">Show Solution</button>
                 </div>
             </div>
         </div>
@@ -621,8 +656,10 @@
             <h3>Game Commands:</h3>
             <ul>
                 <li><code>help</code> - Show this help</li>
+                <li><code>levels</code> - Show level selector</li>
                 <li><code>next</code> - Skip to next challenge</li>
                 <li><code>reset</code> - Reset current challenge</li>
+                <li><code>solution</code> - Show solution for current challenge</li>
             </ul>
         </div>
     </div>
@@ -651,7 +688,28 @@
     </div>
 
     <script>
-        // Game State
+        // Debug Log Accumulator
+        let debugLogContent = "";
+
+        // Custom debug logging function
+        function appendToDebugLog(message) {
+            debugLogContent += message + "\n";
+            console.log(message); // Keep console.log for live debugging as well
+        }
+
+        function downloadDebugLog() {
+            const blob = new Blob([debugLogContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'debug_log.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Game State (as before)
         const gameState = {
             currentLevel: 0,
             completedLevels: [],
@@ -664,13 +722,14 @@
                     description: "Initialize a new Git repository and make your first commit.",
                     objectives: [
                         { text: "Initialize a new Git repository", completed: false, checkFn: state => state.initialized },
-                        { text: "Add file.txt to staging area", completed: false, checkFn: state => state.staging.includes('file.txt') },
+                        { text: "Add a file to staging area", completed: false, checkFn: state => state.staging.length > 0 }, // Generic: Check if *any* file is staged
                         { text: "Commit your changes with a message", completed: false, checkFn: state => state.commits.length > 0 }
                     ],
-                    hint: "Use 'git init' to create a new repository, then 'git add file.txt' and 'git commit -m \"your message\"'.",
+                    hint: "Use 'git init' to create a new repository, then 'git add <filename>' and 'git commit -m \"your message\"'.",
+                    solution: ["git init", "touch file.txt", "git add file.txt", 'git commit -m "Initial commit"'],
                     setupFn: (state) => {
                         state.initialized = false;
-                        state.workingDirectory = ['file.txt'];
+                        state.workingDirectory = []; // Start with empty working directory
                         state.staging = [];
                         state.commits = [];
                         state.branches = [{ name: 'master', commits: [], head: null }];
@@ -682,15 +741,16 @@
                     title: "Branching Out",
                     description: "Create a new branch and switch to it to work on a new feature.",
                     objectives: [
-                        { text: "Create a new branch called 'feature'", completed: false, checkFn: state => state.branches.some(b => b.name === 'feature') },
-                        { text: "Switch to the 'feature' branch", completed: false, checkFn: state => state.currentBranch === 'feature' },
+                        { text: "Create a new branch", completed: false, checkFn: state => state.branches.length > 1 }, // Generic: Check if *any* new branch is created
+                        { text: "Switch to the new branch", completed: false, checkFn: state => state.currentBranch !== 'master' }, // Generic: Check if current branch is *not* master
                         { text: "Create and commit a new file in this branch", completed: false, checkFn: state => {
-                            const featureBranch = state.branches.find(b => b.name === 'feature');
-                            if (!featureBranch) return false;
-                            return featureBranch.commits.length > 0 && featureBranch.commits[featureBranch.commits.length - 1].files.includes('feature.txt');
+                            const currentBranch = state.branches.find(b => b.name === state.currentBranch);
+                            if (!currentBranch) return false;
+                            return currentBranch.commits.length > 0 && currentBranch.commits[currentBranch.commits.length - 1].files.length > 0; // Generic: Check if *any* file is committed in the new branch
                         }}
                     ],
-                    hint: "Use 'git branch feature' to create a branch, 'git checkout feature' to switch to it, then add and commit a new file.",
+                    hint: "Use 'git branch <branchname>' to create a branch, 'git checkout <branchname>' to switch to it, then add and commit a new file.",
+                    solution: ["git branch feature", "git checkout feature", "touch feature.txt", "git add feature.txt", 'git commit -m "Add feature file"'],
                     setupFn: (state) => {
                         state.initialized = true;
                         state.workingDirectory = ['file.txt'];
@@ -720,17 +780,14 @@
                     description: "Merge your feature branch back into the master branch.",
                     objectives: [
                         { text: "Switch back to the master branch", completed: false, checkFn: state => state.currentBranch === 'master' },
-                        { text: "Merge the 'feature' branch into master", completed: false, checkFn: state => {
+                        { text: "Merge a branch into master", completed: false, checkFn: state => { // Generic: Check if *any* merge commit happened
                             const masterBranch = state.branches.find(b => b.name === 'master');
                             if (!masterBranch) return false;
-                            // Check if master's commit history includes commits from feature branch after merge
-                            const masterCommitIds = new Set(masterBranch.commits.map(c => c.id));
-                            const featureBranch = state.branches.find(b => b.name === 'feature');
-                            if (!featureBranch) return false;
-                            return featureBranch.commits.some(commit => masterCommitIds.has(commit.id));
+                            return masterBranch.commits.some(commit => commit.message.startsWith("Merge branch")); // More generic check for merge commit message
                         }}
                     ],
-                    hint: "Use 'git checkout master' to switch back to master, then 'git merge feature' to merge your changes.",
+                    hint: "Use 'git checkout master' to switch back to master, then 'git merge <branchname>' to merge your changes.",
+                    solution: ["git checkout master", "git merge feature"],
                     setupFn: (state) => {
                         state.initialized = true;
 
@@ -765,16 +822,17 @@
                     }
                 },
                 {
-                    title: "Conflict Resolution",
-                    description: "Resolve a merge conflict between two branches that modified the same file.",
+                    title: "🛠️ Conflict Resolution",
+                    description: "Resolve a merge conflict between two branches that modified the same file. **This level is still under development.**",
                     objectives: [
                         { text: "Switch to the master branch", completed: false, checkFn: state => state.currentBranch === 'master' },
-                        { text: "Merge the 'bugfix' branch (which will create conflict)", completed: false, checkFn: state => state.mergeAttempted },
+                        { text: "Attempt to merge a branch that creates conflict", completed: false, checkFn: state => state.mergeAttempted && state.hasConflict },
                         { text: "Resolve the conflict and complete the merge", completed: false, checkFn: state => {
-                            return !state.hasConflict && state.branches.find(b => b.name === 'master').commits.some(c => c.message.includes("Merge branch 'bugfix'"));
+                            return !state.hasConflict && state.branches.find(b => b.name === 'master').commits.some(c => c.message.includes("Merge branch")); // Generic merge commit check
                         }}
                     ],
-                    hint: "After the conflict, edit the conflicting file, add it with 'git add', then complete with 'git commit'.",
+                    hint: "After the conflict, edit the conflicting file (use 'edit shared.txt'), add it with 'git add', then complete with 'git commit'.",
+                    solution: ["git checkout master", "git merge bugfix", "edit shared.txt", "git add shared.txt", 'git commit -m "Resolve conflict and merge bugfix"'],
                     setupFn: (state) => {
                         state.initialized = true;
                         state.mergeAttempted = false;
@@ -836,6 +894,7 @@
                         { text: "Perform a reset to undo the last commit", completed: false, checkFn: state => state.commits.length === 1 }
                     ],
                     hint: "Use 'git reset --hard HEAD~1' to reset to the commit before HEAD.",
+                    solution: ["git reset --hard HEAD~1"],
                     setupFn: (state) => {
                         state.initialized = true;
                         state.workingDirectory = ['file1.txt', 'file2.txt'];
@@ -873,6 +932,7 @@
                         { text: "Revert the last commit", completed: false, checkFn: state => state.commits.length === 3 && state.commits[2].message.startsWith('Revert') }
                     ],
                     hint: "Use 'git revert HEAD' to revert the latest commit.",
+                    solution: ["git revert HEAD"],
                     setupFn: (state) => {
                         state.initialized = true;
                         state.workingDirectory = ['file1.txt', 'file2.txt'];
@@ -908,9 +968,10 @@
                     description: "Use `git stash` to temporarily save changes you don't want to commit immediately.",
                     objectives: [
                         { text: "Stash your current changes", completed: false, checkFn: state => state.stashedChanges.length > 0 },
-                        { text: "Apply the stashed changes back", completed: false, checkFn: state => state.stashedChanges.length === 0 && state.workingDirectory.includes('modified_file.txt') }
+                        { text: "Apply the stashed changes back", completed: false, checkFn: state => state.stashedChanges.length === 0 && state.workingDirectory.length > 0 } // Generic: Check if working directory is not empty after pop
                     ],
                     hint: "Use 'git stash' to save changes, and 'git stash pop' to reapply them.",
+                    solution: ["git stash", "git stash pop"],
                     setupFn: (state) => {
                         state.initialized = true;
                         state.workingDirectory = ['file1.txt', 'modified_file.txt']; // Assume modified_file.txt is modified
@@ -941,6 +1002,7 @@
                         { text: "Use 'git log' command", completed: false, checkFn: state => state.terminalOutput.toLowerCase().includes('commit') && state.terminalOutput.toLowerCase().includes('author') && state.terminalOutput.toLowerCase().includes('date') }
                     ],
                     hint: "Simply type 'git log' in the terminal.",
+                    solution: ["git log"],
                     setupFn: (state) => {
                         state.initialized = true;
                         state.workingDirectory = ['file1.txt', 'file2.txt'];
@@ -975,9 +1037,10 @@
                     title: "Tagging Releases",
                     description: "Use `git tag` to mark specific points in history as important (like releases).",
                     objectives: [
-                        { text: "Create a tag named 'v1.0'", completed: false, checkFn: state => state.tags.includes('v1.0') }
+                        { text: "Create a tag", completed: false, checkFn: state => state.tags.length > 0 } // Generic: Check if *any* tag is created
                     ],
-                    hint: "Use 'git tag v1.0' to create a tag.",
+                    hint: "Use 'git tag <tagname>' to create a tag.",
+                    solution: ["git tag v1.0"],
                     setupFn: (state) => {
                         state.initialized = true;
                         state.workingDirectory = ['file1.txt'];
@@ -1002,16 +1065,67 @@
                     }
                 },
                 {
-                    title: "Inspecting the Repository Status",
-                    description: "Use `git status` to check the state of your working directory and staging area.",
+                    title: "🛠️ Inspecting the Repository Status",
+                    description: "Use `git status` to check the state of your working directory and staging area. **This level is still under development.**",
                     objectives: [
-                        { text: "Use 'git status' command", completed: false, checkFn: state => state.terminalOutput.toLowerCase().includes('working tree') }
+                        { text: "Use 'git status' command", completed: false, checkFn: state => state.terminalOutput.toLowerCase().includes('working tree') && state.terminalOutput.toLowerCase().includes('nothing to commit') === false } // Modified checkFn for level 10
+                    ], // Modified objective to check terminal output text content
+                    objectiveCheckFn: () => document.getElementById('terminal-output').textContent.toLowerCase().includes('working tree') && !document.getElementById('terminal-output').textContent.toLowerCase().includes('nothing to commit'),
+                     hint: "Simply type 'git status' in the terminal.",
+                     solution: ["git status"],
+                     setupFn: (state) => {
+                         state.initialized = true;
+                         state.workingDirectory = ['file1.txt', 'modified_file.txt', 'new_file.txt']; // Assume modified_file.txt is modified, new_file.txt is new
+                         state.staging = ['modified_file.txt']; // modified_file.txt is staged
+                         // Initial commit
+                         const initialCommit = {
+                             id: generateCommitId(),
+                             message: "Initial commit",
+                             files: ['file1.txt'],
+                             parent: null
+                         };
+
+                         state.branches = [{
+                             name: 'master',
+                             commits: [initialCommit],
+                             head: initialCommit.id
+                         }];
+                         state.commits = [initialCommit];
+                         state.currentBranch = 'master';
+                         state.head = initialCommit.id;
+                     }
+                 },
+                {
+                    title: "🛠️ Cloning a Repository",
+                    description: "Use `git clone` to copy a repository from a remote URL to your local machine. **This level is still under development.**",
+                    objectives: [
+                        { text: "Use 'git clone' command with a valid URL", completed: false, checkFn: state => state.initialized && state.commits.length > 0 }
                     ],
-                    hint: "Simply type 'git status' in the terminal.",
+                    hint: "Use 'git clone <repository_url>'. For this challenge, use 'https://example.com/repo.git'.",
+                    solution: ["git clone https://example.com/repo.git"],
+                    setupFn: (state) => {
+                        state.initialized = false;
+                        state.workingDirectory = [];
+                        state.staging = [];
+                        state.commits = [];
+                        state.branches = [];
+                        state.currentBranch = '';
+                        state.head = null;
+                    }
+                },
+                {
+                    title: "Configuring a Remote",
+                    description: "Use `git remote add` to define a new connection to a remote repository.",
+                    objectives: [
+                        { text: "Add a remote", completed: false, checkFn: state => Object.keys(state.remotes).length > 0 } // Generic: Check if *any* remote is added
+                    ],
+                    hint: "Use 'git remote add <remotename> <remote_url>'. The URL is 'https://github.com/user/repo.git'.",
+                    solution: ["git remote add origin https://github.com/user/repo.git"],
                     setupFn: (state) => {
                         state.initialized = true;
-                        state.workingDirectory = ['file1.txt', 'modified_file.txt', 'new_file.txt']; // Assume modified_file.txt is modified, new_file.txt is new
-                        state.staging = ['modified_file.txt']; // modified_file.txt is staged
+                        state.workingDirectory = ['file1.txt'];
+                        state.staging = [];
+                        state.remotes = {};
                         // Initial commit
                         const initialCommit = {
                             id: generateCommitId(),
@@ -1019,7 +1133,6 @@
                             files: ['file1.txt'],
                             parent: null
                         };
-
                         state.branches = [{
                             name: 'master',
                             commits: [initialCommit],
@@ -1029,9 +1142,564 @@
                         state.currentBranch = 'master';
                         state.head = initialCommit.id;
                     }
+                },
+                {
+                    title: "Fetching from a Remote",
+                    description: "Use `git fetch` to download objects and refs from another repository.",
+                    objectives: [
+                        { text: "Fetch from a remote", completed: false, checkFn: state => state.fetchedRemote },
+                        { text: "Verify fetched commits are available", completed: false, checkFn: state => state.commits.length > 1 }
+                    ],
+                    hint: "Use 'git fetch <remotename>'.",
+                    solution: ["git fetch origin"],
+                    setupFn: (state) => {
+                        state.initialized = true;
+                        state.workingDirectory = ['file1.txt'];
+                        state.staging = [];
+                        state.fetchedRemote = false;
+                        // Initial commit
+                        const initialCommit = {
+                            id: generateCommitId(),
+                            message: "Initial commit",
+                            files: ['file1.txt'],
+                            parent: null
+                        };
+                        state.branches = [{
+                            name: 'master',
+                            commits: [initialCommit],
+                            head: initialCommit.id
+                        }];
+                        state.commits = [initialCommit];
+                        state.currentBranch = 'master';
+                        state.head = initialCommit.id;
+                        state.remotes = { origin: 'https://github.com/user/repo.git' }; // Simulate remote
+                    }
+                },
+                {
+                    title: "Pulling Changes from Remote",
+                    description: "Use `git pull` to fetch from and integrate with another repository or a local branch.",
+                    objectives: [
+                        { text: "Pull changes from remote", completed: false, checkFn: state => state.pulledRemote },
+                        { text: "Verify local branch is updated", completed: false, checkFn: state => state.commits.length > 1 }
+                    ],
+                    hint: "Use 'git pull <remotename> <branchname>'.",
+                    solution: ["git pull origin master"],
+                    setupFn: (state) => {
+                        state.initialized = true;
+                        state.workingDirectory = ['file1.txt'];
+                        state.staging = [];
+                        state.pulledRemote = false;
+                        // Initial commit
+                        const initialCommit = {
+                            id: generateCommitId(),
+                            message: "Initial commit",
+                            files: ['file1.txt'],
+                            parent: null
+                        };
+                        state.branches = [{
+                            name: 'master',
+                            commits: [initialCommit],
+                            head: initialCommit.id
+                        }];
+                        state.commits = [initialCommit];
+                        state.currentBranch = 'master';
+                        state.head = initialCommit.id;
+                        state.remotes = { origin: 'https://github.com/user/repo.git' }; // Simulate remote
+                    }
+                },
+                {
+                    title: "Pushing Changes to Remote",
+                    description: "Use `git push` to update remote refs along with associated objects.",
+                    objectives: [
+                        { text: "Push local changes to remote", completed: false, checkFn: state => state.pushedRemote }
+                    ],
+                    hint: "Use 'git push <remotename> <branchname>'.",
+                    solution: ["git push origin master"],
+                    setupFn: (state) => {
+                        state.initialized = true;
+                        state.workingDirectory = ['file1.txt', 'file2.txt'];
+                        state.staging = ['file2.txt'];
+                        state.pushedRemote = false;
+                        // Initial commit
+                        const initialCommit = {
+                            id: generateCommitId(),
+                            message: "Initial commit",
+                            files: ['file1.txt'],
+                            parent: null
+                        };
+                        // Second commit to be pushed
+                        const secondCommit = {
+                            id: generateCommitId(),
+                            message: "Add file2 for push",
+                            files: ['file2.txt'],
+                            parent: initialCommit.id
+                        };
+                        state.branches = [{
+                            name: 'master',
+                            commits: [initialCommit, secondCommit],
+                            head: secondCommit.id
+                        }];
+                        state.commits = [initialCommit, secondCommit];
+                        state.currentBranch = 'master';
+                        state.head = secondCommit.id;
+                        state.remotes = { origin: 'https://github.com/user/repo.git' }; // Simulate remote
+                    }
+                },
+                {
+                    title: "🛠️ Creating and Deleting Branches",
+                    description: "Practice creating and deleting branches in Git. **This level is still under development.**",
+                    objectives: [
+                        { text: "Create a new branch", completed: false, checkFn: state => state.branches.length > 1 }, // Generic: Check if new branch created
+                        { text: "Delete a branch", completed: false, checkFn: state => state.branches.length === 1 }  // Generic: Check if branch deleted, back to master only
+                    ],
+                    hint: "Use 'git branch <branchname>' to create, and 'git branch -d <branchname>' to delete.",
+                    solution: ["git branch temp", "git branch -d temp"],
+                    setupFn: (state) => {
+                        state.initialized = true;
+                        state.workingDirectory = ['file1.txt'];
+                        state.staging = [];
+                        // Initial commit
+                        const initialCommit = {
+                            id: generateCommitId(),
+                            message: "Initial commit",
+                            files: ['file1.txt'],
+                            parent: null
+                        };
+                        state.branches = [{
+                            name: 'master',
+                            commits: [initialCommit],
+                            head: initialCommit.id
+                        }];
+                        state.commits = [initialCommit];
+                        state.currentBranch = 'master';
+                        state.head = initialCommit.id;
+                    }
+                },
+                {
+                    title: "🛠️ Renaming Branches",
+                    description: "Learn how to rename a Git branch. **This level is still under development.**",
+                    objectives: [
+                        { text: "Rename the current branch", completed: false, checkFn: state => state.branches.some(b => b.name === 'main') && !state.branches.some(b => b.name === 'master') }, // Generic: Check rename from master to main
+                        { text: "Verify current branch is the new name", completed: false, checkFn: state => state.currentBranch === 'main' } // Generic: Check current branch name
+                    ],
+                    hint: "Use 'git branch -m <newbranchname>' to rename the current branch.",
+                    solution: ["git branch -m main"],
+                    setupFn: (state) => {
+                        state.initialized = true;
+                        state.workingDirectory = ['file1.txt'];
+                        state.staging = [];
+                        // Initial commit
+                        const initialCommit = {
+                            id: generateCommitId(),
+                            message: "Initial commit",
+                            files: ['file1.txt'],
+                            parent: null
+                        };
+                        state.branches = [{
+                            name: 'master',
+                            commits: [initialCommit],
+                            head: initialCommit.id
+                        }];
+                        state.commits = [initialCommit];
+                        state.currentBranch = 'master';
+                        state.head = initialCommit.id;
+                    }
+                },
+                {
+                    title: "Cherry-Picking Commits",
+                    description: "Use `git cherry-pick` to apply specific commits from one branch to another.",
+                    objectives: [
+                        { text: "Cherry-pick a commit", completed: false, checkFn: state => state.cherryPicked } // Generic: Check if any commit is cherry-picked
+                    ],
+                    hint: "First, checkout target branch, then use 'git cherry-pick <commit_id_from_other_branch>'. You can get commit ID from 'git log --oneline <other_branch>'.",
+                    solution: ["git checkout master", "git cherry-pick <commitId>"], // commitId will be dynamically replaced in test
+                    setupFn: (state) => {
+                        state.initialized = true;
+                        state.workingDirectory = ['file1.txt'];
+                        state.staging = [];
+                        state.cherryPicked = false;
+                        // Initial commit
+                        const initialCommit = {
+                            id: generateCommitId(),
+                            message: "Initial commit",
+                            files: ['file1.txt'],
+                            parent: null
+                        };
+                        // Commit on feature branch to be cherry-picked
+                        const featureCommit = {
+                            id: generateCommitId(),
+                            message: "Feature commit to cherry-pick",
+                            files: ['feature.txt'],
+                            parent: initialCommit.id
+                        };
+                        state.branches = [
+                            {
+                                name: 'master',
+                                commits: [initialCommit],
+                                head: initialCommit.id
+                            },
+                            {
+                                name: 'feature',
+                                commits: [initialCommit, featureCommit],
+                                head: featureCommit.id
+                            }
+                        ];
+                        state.commits = [initialCommit, featureCommit];
+                        state.currentBranch = 'feature'; // Start on feature branch
+                        state.head = featureCommit.id;
+                        gitCommandProcessor(state, 'git checkout master'); // Switch to master for challenge start
+                    }
+                },
+                {
+                    title: "🛠️ Interactive Rebase - Reordering Commits",
+                    description: "Use `git rebase -i` to interactively reorder commits. **This level is still under development.**",
+                    objectives: [
+                        { text: "Reorder commits using interactive rebase", completed: false, checkFn: state => state.rebased }
+                    ],
+                    hint: "Use 'git rebase -i HEAD~2' and reorder commits in the editor (simulated).",
+                    solution: ["git rebase -i HEAD~2", "reorder commits in editor"], // Editor step is simulated
+                    setupFn: (state) => {
+                        state.initialized = true;
+                        state.workingDirectory = ['file1.txt', 'file2.txt', 'file3.txt'];
+                        state.staging = [];
+                        state.rebased = false;
+                        // Commit 1
+                        const commit1 = {
+                            id: generateCommitId(),
+                            message: "First commit",
+                            files: ['file1.txt'],
+                            parent: null
+                        };
+                        // Commit 2
+                        const commit2 = {
+                            id: generateCommitId(),
+                            message: "Second commit",
+                            files: ['file2.txt'],
+                            parent: commit1.id
+                        };
+                        // Commit 3
+                        const commit3 = {
+                            id: generateCommitId(),
+                            message: "Third commit",
+                            files: ['file3.txt'],
+                            parent: commit2.id
+                        };
+                        state.branches = [{
+                            name: 'master',
+                            commits: [commit1, commit2, commit3],
+                            head: commit3.id
+                        }];
+                        state.commits = [commit1, commit2, commit3];
+                        state.currentBranch = 'master';
+                        state.head = commit3.id;
+                    }
+                },
+                {
+                    title: "🛠️ Interactive Rebase - Squashing Commits",
+                    description: "Use `git rebase -i` to squash multiple commits into one. **This level is still under development.**",
+                    objectives: [
+                        { text: "Squash commits using interactive rebase", completed: false, checkFn: state => state.squashed }
+                    ],
+                    hint: "Use 'git rebase -i HEAD~2' and change 'pick' to 'squash' for the second commit in the editor (simulated).",
+                    solution: ["git rebase -i HEAD~2", "squash commits in editor"], // Editor step is simulated
+                    setupFn: (state) => {
+                        state.initialized = true;
+                        state.workingDirectory = ['file1.txt', 'file2.txt'];
+                        state.staging = [];
+                        state.squashed = false;
+                        // Commit 1
+                        const commit1 = {
+                            id: generateCommitId(),
+                            message: "First commit",
+                            files: ['file1.txt'],
+                            parent: null
+                        };
+                        // Commit 2
+                        const commit2 = {
+                            id: generateCommitId(),
+                            message: "Second commit to squash",
+                            files: ['file2.txt'],
+                            parent: commit1.id
+                        };
+                        state.branches = [{
+                            name: 'master',
+                            commits: [commit1, commit2],
+                            head: commit2.id
+                        }];
+                        state.commits = [commit1, commit2];
+                        state.currentBranch = 'master';
+                        state.head = commit2.id;
+                    }
+                },
+                {
+                    title: "🛠️ Amending the Last Commit",
+                    description: "Use `git commit --amend` to modify the last commit. **This level is still under development.**",
+                    objectives: [
+                        { text: "Amend the last commit", completed: false, checkFn: state => state.amended },
+                        { text: "Verify the last commit is amended", completed: false, checkFn: state => state.commits.length === 1 && state.commits[0].files.includes('file2.txt') } // Generic: Check if amended commit includes new file
+                    ],
+                    hint: "Stage a file and then use 'git commit --amend --no-edit'.",
+                    solution: ["git add file2.txt", "git commit --amend --no-edit"],
+                    setupFn: (state) => {
+                        state.initialized = true;
+                        state.workingDirectory = ['file1.txt', 'file2.txt'];
+                        state.staging = [];
+                        state.amended = false;
+                        // Initial commit (only file1.txt)
+                        const initialCommit = {
+                            id: generateCommitId(),
+                            message: "Initial commit with file1",
+                            files: ['file1.txt'],
+                            parent: null
+                        };
+                        state.branches = [{
+                            name: 'master',
+                            commits: [initialCommit],
+                            head: initialCommit.id
+                        }];
+                        state.commits = [initialCommit];
+                        state.currentBranch = 'master';
+                        state.head = initialCommit.id;
+                    }
+                },
+                {
+                    title: "Ignoring Files",
+                    description: "Use `.gitignore` to prevent certain files from being tracked by Git.",
+                    objectives: [
+                        { text: "Create a '.gitignore' file", completed: false, checkFn: state => state.workingDirectory.includes('.gitignore') },
+                        { text: "Add content to '.gitignore'", completed: false, checkFn: state => state.gitIgnoreContent.length > 0 }, // Generic: Check for any content in gitignore
+                        { text: "Verify a file is ignored", completed: false, checkFn: state => !state.staging.includes('debug.log') } // Generic: Check if debug.log is ignored (assuming debug.log is used in setup)
+                    ],
+                    hint: "Create a '.gitignore' file, edit it to include a pattern to ignore log files (e.g., '*.log'), and then check 'git status'.",
+                    solution: ["touch .gitignore", "edit .gitignore *.log", "git status"], // "edit .gitignore" simulates editing and setting content
+                    setupFn: (state) => {
+                        state.initialized = true;
+                        state.workingDirectory = ['file1.txt', 'debug.log'];
+                        state.staging = [];
+                        state.gitIgnoreContent = '';
+                        // Initial commit
+                        const initialCommit = {
+                            id: generateCommitId(),
+                            message: "Initial commit",
+                            files: ['file1.txt'],
+                            parent: null
+                        };
+                        state.branches = [{
+                            name: 'master',
+                            commits: [initialCommit],
+                            head: initialCommit.id
+                        }];
+                        state.commits = [initialCommit];
+                        state.currentBranch = 'master';
+                        state.head = initialCommit.id;
+                    }
+                },
+                {
+                    title: "Using Git Aliases",
+                    description: "Configure and use a Git alias for shorter commands.",
+                    objectives: [
+                        { text: "Configure a Git alias", completed: false, checkFn: state => Object.keys(state.aliases).length > 0 }, // Generic: Check if any alias is configured
+                        { text: "Use the configured alias", completed: false, checkFn: state => state.commits.length > 1 } // Generic: Check if alias usage resulted in commit
+                    ],
+                    hint: "Use 'git config --global alias.<aliasname> <gitcommand>', then use the alias to perform a git operation.",
+                    solution: ["git config --global alias.ci commit", "git add file2.txt", 'git ci -m "Commit via alias"'],
+                    setupFn: (state) => {
+                        state.initialized = true;
+                        state.workingDirectory = ['file1.txt', 'file2.txt'];
+                        state.staging = ['file2.txt']; // Stage file2 for commit via alias
+                        state.aliases = {};
+                        // Initial commit
+                        const initialCommit = {
+                            id: generateCommitId(),
+                            message: "Initial commit",
+                            files: ['file1.txt'],
+                            parent: null
+                        };
+                        state.branches = [{
+                            name: 'master',
+                            commits: [initialCommit],
+                            head: initialCommit.id
+                        }];
+                        state.commits = [initialCommit];
+                        state.currentBranch = 'master';
+                        state.head = initialCommit.id;
+                    }
+                },
+                {
+                    title: "Cleaning Untracked Files",
+                    description: "Use `git clean` to remove untracked files from your working directory.",
+                    objectives: [
+                        { text: "Use 'git clean' to remove untracked files and directories", completed: false, checkFn: state => state.workingDirectory.length === 1 && !state.workingDirectory.includes('untracked.txt') && !state.workingDirectory.includes('untracked_dir') }
+                    ],
+                    hint: "Use 'git clean -fd'. Be careful with `git clean` in real repositories!",
+                    solution: ["git clean -fd"],
+                    setupFn: (state) => {
+                        state.initialized = true;
+                        state.workingDirectory = ['file1.txt', 'untracked.txt', 'untracked_dir/'];
+                        state.staging = [];
+                        // Initial commit
+                        const initialCommit = {
+                            id: generateCommitId(),
+                            message: "Initial commit",
+                            files: ['file1.txt'],
+                            parent: null
+                        };
+                        state.branches = [{
+                            name: 'master',
+                            commits: [initialCommit],
+                            head: initialCommit.id
+                        }];
+                        state.commits = [initialCommit];
+                        state.currentBranch = 'master';
+                        state.head = initialCommit.id;
+                    }
+                },
+                {
+                    title: "Viewing Changes with Git Diff",
+                    description: "Use `git diff` to inspect changes in your working directory and staging area.",
+                    objectives: [
+                        { text: "Use 'git diff' to view changes", completed: false, checkFn: state => state.diffViewed } // Generic: Check if diff command was used
+                    ],
+                    hint: "Modify a file and then use 'git diff'.",
+                    solution: ["edit file1.txt", "git diff"], // "edit file1.txt" simulates file modification
+                    setupFn: (state) => {
+                        state.initialized = true;
+                        state.workingDirectory = ['file1.txt'];
+                        state.staging = [];
+                        state.diffViewed = false;
+                        // Initial commit
+                        const initialCommit = {
+                            id: generateCommitId(),
+                            message: "Initial commit",
+                            files: ['file1.txt'],
+                            parent: null
+                        };
+                        state.branches = [{
+                            name: 'master',
+                            commits: [initialCommit],
+                            head: initialCommit.id
+                        }];
+                        state.commits = [initialCommit];
+                        state.currentBranch = 'master';
+                        state.head = initialCommit.id;
+                    }
+                },
+                {
+                    title: "Inspecting Commits with Git Show",
+                    description: "Use `git show` to display information about commits, including changes.",
+                    objectives: [
+                        { text: "Use 'git show' to view a commit", completed: false, checkFn: state => state.showViewed } // Generic: Check if show command was used
+                    ],
+                    hint: "Use 'git show HEAD'.",
+                    solution: ["git show HEAD"],
+                    setupFn: (state) => {
+                        state.initialized = true;
+                        state.workingDirectory = ['file1.txt', 'file2.txt'];
+                        state.staging = ['file2.txt'];
+                        // Initial commit
+                        const initialCommit = {
+                            id: generateCommitId(),
+                            message: "Initial commit",
+                            files: ['file1.txt'],
+                            parent: null
+                        };
+                        // Second commit
+                        const secondCommit = {
+                            id: generateCommitId(),
+                            message: "Add file2",
+                            files: ['file2.txt'],
+                            parent: initialCommit.id
+                        };
+                        state.branches = [{
+                            name: 'master',
+                            commits: [initialCommit, secondCommit],
+                            head: secondCommit.id
+                        }];
+                        state.commits = [initialCommit, secondCommit];
+                        state.currentBranch = 'master';
+                        state.head = secondCommit.id;
+                        state.showViewed = false;
+                    }
+                },
+                {
+                    title: "🛠️ Searching History with Git Grep",
+                    description: "Use `git grep` to search for text within the files in your Git repository history. **This level is still under development.**",
+                    objectives: [
+                        { text: "Use 'git grep' to search for text", completed: false, checkFn: state => state.grepUsed } // Generic: Check if grep was used
+                    ],
+                    hint: "Use 'git grep \"<text_to_search>\"'.",
+                    solution: ["git grep \"example text\""],
+                    setupFn: (state) => {
+                        state.initialized = true;
+                        state.workingDirectory = ['file1.txt'];
+                        state.staging = [];
+                        state.grepUsed = false;
+                        // Initial commit with "example text" in file1.txt
+                        const initialCommit = {
+                            id: generateCommitId(),
+                            message: "Initial commit with example text",
+                            files: ['file1.txt'],
+                            parent: null,
+                            content: "This file contains example text." // Simulate file content
+                        };
+                        state.branches = [{
+                            name: 'master',
+                            commits: [initialCommit],
+                            head: initialCommit.id
+                        }];
+                        state.commits = [initialCommit];
+                        state.currentBranch = 'master';
+                        state.head = initialCommit.id;
+                    }
+                },
+                {
+                    title: "Finding Bugs with Git Bisect",
+                    description: "Use `git bisect` to find which commit introduced a bug.",
+                    objectives: [
+                        { text: "Start 'git bisect'", completed: false, checkFn: state => state.bisectStarted },
+                        { text: "Mark a commit as 'bad'", completed: false, checkFn: state => state.bisectBad },
+                        { text: "Mark a commit as 'good'", completed: false, checkFn: state => state.bisectGood },
+                        { text: "Reset 'git bisect'", completed: false, checkFn: state => !state.bisectStarted } // Generic: Check if bisect is reset (end of bisect process)
+                    ],
+                    hint: "Start with 'git bisect start', mark current commit as 'bad' with 'git bisect bad', mark an earlier commit (e.g., HEAD~2) as 'good' with 'git bisect good', then use 'git bisect reset' after finding the commit.",
+                    solution: ["git bisect start", "git bisect bad", "git bisect good HEAD~2", "git bisect reset"],
+                    setupFn: (state) => {
+                        state.initialized = true;
+                        state.workingDirectory = ['app.js'];
+                        state.staging = [];
+                        state.bisectStarted = false;
+                        state.bisectBad = false;
+                        state.bisectGood = false;
+                        // Commit 1 (good - no bug)
+                        const commit1 = {
+                            id: generateCommitId(),
+                            message: "Good commit - app works",
+                            files: ['app.js'],
+                            parent: null,
+                            content: "function app() { return 'App is working'; }" // Simulate good app content
+                        };
+                        // Commit 2 (introduces bug)
+                        const commit2 = {
+                            id: generateCommitId(),
+                            message: "Introduce bug",
+                            files: ['app.js'],
+                            parent: commit1.id,
+                            content: "function app() { return 'App is broken'; }" // Simulate buggy app content
+                        };
+                        state.branches = [{
+                            name: 'master',
+                            commits: [commit1, commit2],
+                            head: commit2.id
+                        }];
+                        state.commits = [commit1, commit2];
+                        state.currentBranch = 'master';
+                        state.head = commit2.id;
+                    }
                 }
-            ],
-            terminalOutput: "<div>Welcome to Git Command Challenge!</div><div>Type 'help' to see available commands or 'next' to skip to the next challenge.</div>",
+
+
+             ],
+            terminalOutput: "<div>Welcome to Git Command Challenge!</div><div>Type 'help' to see available commands or 'levels' to select level, 'next' to skip or 'solution' to show solution.</div>",
             workingDirectory: [],
             staging: [],
             commits: [],
@@ -1042,17 +1710,38 @@
             stashedChanges: [],
             tags: [],
             mergeAttempted: false,
-            hasConflict: false
+            hasConflict: false,
+            remotes: {},
+            fetchedRemote: false,
+            pulledRemote: false,
+            pushedRemote: false,
+            cherryPicked: false,
+            rebased: false,
+            squashed: false,
+            amended: false,
+            gitIgnoreContent: '',
+            aliases: {},
+            diffViewed: false,
+            showViewed: false,
+            grepUsed: false,
+            bisectStarted: false,
+            bisectBad: false,
+            bisectGood: false,
+            wipLevels: [4, 10, 11, 16, 17, 19, 20, 21, 23, 27].map(e => e-1) // Array of 0-indexed WIP levels
         };
 
-        // Helper Functions
+        // Helper Functions (as before, modified to use appendToDebugLog)
         function generateCommitId() {
             return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
         }
 
         function updateChallengeInfo() {
             const currentChallenge = gameState.challenges[gameState.currentLevel];
-            document.getElementById('challenge-title').textContent = currentChallenge.title;
+            let titleText = currentChallenge.title;
+            if (gameState.wipLevels.includes(gameState.currentLevel)) {
+                titleText = "🛠️ " + titleText;
+            }
+            document.getElementById('challenge-title').textContent = titleText;
             document.getElementById('challenge-description').textContent = currentChallenge.description;
             document.getElementById('current-level').textContent = `Level ${gameState.currentLevel + 1}/${gameState.challenges.length}`;
         }
@@ -1078,6 +1767,8 @@
 
             const terminalOutputElement = document.getElementById('terminal-output');
             terminalOutputElement.scrollTop = terminalOutputElement.scrollHeight; // Scroll to bottom
+
+            gameState.terminalOutput += message; // Update gameState's terminalOutput
         }
 
         function updateFileList() {
@@ -1104,6 +1795,10 @@
         }
 
         function updateGraph() {
+            updateGraphBase();
+        }
+
+        function updateGraphBase() { // rename to avoid name conflict with extended function
             const graphDiv = document.getElementById('git-graph');
             graphDiv.innerHTML = ''; // Clear existing graph
             graphDiv.style.transform = `scale(${gameState.zoom}) translate(${gameState.panOffset.x}px, ${gameState.panOffset.y}px)`;
@@ -1211,12 +1906,17 @@
             }
         }
 
+
         function checkObjectives() {
             const currentChallenge = gameState.challenges[gameState.currentLevel];
             let allObjectivesCompleted = true;
             currentChallenge.objectives.forEach(objective => {
                 if (!objective.completed) {
-                    objective.completed = objective.checkFn(gameState);
+                    if (currentChallenge.objectiveCheckFn) { // Use custom check function if available, for level 10
+                        objective.completed = currentChallenge.objectiveCheckFn();
+                    } else {
+                        objective.completed = objective.checkFn(gameState); // Default check with state
+                    }
                 }
                 if (!objective.completed) {
                     allObjectivesCompleted = false;
@@ -1267,11 +1967,11 @@
                         let changedFiles = [];
                         state.workingDirectory.forEach(file => {
                             if (!state.commits.some(commit => commit.files.includes(file)) && !state.staging.includes(file)) { //Untracked - simplified logic
-                                changedFiles.push(`<div class="command-output">Untracked files:<br>  (use "git add <file>..." to include in what will be committed)<br><br>  new file:   ${file}</div>`);
+                                changedFiles.push(`<div class="command-output">Untracked files:<br>  (use "git add <file>..." to include in what will be committed)<br><br>  new file:   ${file}</div>`);
                             } else if (state.staging.includes(file)) {
-                                changedFiles.push(`<div class="command-output">Changes to be committed:<br>  (use "git restore --staged <file>..." to unstage)<br><br>  staged:   ${file}</div>`);
+                                changedFiles.push(`<div class="command-output">Changes to be committed:<br>  (use "git restore --staged <file>..." to unstage)<br><br>  staged:   ${file}</div>`);
                             } else if (state.workingDirectory.includes(file) && state.commits.some(commit => commit.files.includes(file)) && !state.staging.includes(file)) { //Modified - simplified
-                                changedFiles.push(`<div class="command-output">Changes not staged for commit:<br>  (use "git add <file>..." to update what will be committed)<br>  (use "git restore <file>..." to discard changes in working directory)<br><br>  modified:   ${file}</div>`);
+                                changedFiles.push(`<div class="command-output">Changes not staged for commit:<br>  (use "git add <file>..." to update what will be committed)<br>  (use "git restore <file>..." to discard changes in working directory)<br><br>  modified:   ${file}</div>`);
                             }
                         });
 
@@ -1284,27 +1984,27 @@
                         break;
 
                     case 'add':
+                        const filesToAdd = gitArgs;
                         if (!state.initialized) {
                             updateTerminalOutput('<div class="command-error">fatal: not a git repository (or any of the parent directories): .git</div>', 'error');
                             return;
                         }
-                        const filesToAdd = gitArgs;
                         if (filesToAdd.length === 0) {
                             updateTerminalOutput('<div class="command-error">What should I add?</div>', 'error');
-                        } else {
-                            filesToAdd.forEach(file => {
-                                if (state.workingDirectory.includes(file)) {
-                                    if (!state.staging.includes(file)) {
-                                        state.staging.push(file);
-                                        updateTerminalOutput(`<div class="command-success">Staged ${file}</div>`, 'success');
-                                    } else {
-                                        updateTerminalOutput(`<div class="command-output">${file} is already staged.</div>`);
-                                    }
-                                } else {
-                                    updateTerminalOutput(`<div class="command-error">error: pathspec '${file}' did not match any files</div>`, 'error');
-                                }
-                            });
+                            return;
                         }
+                        filesToAdd.forEach(file => {
+                            if (state.workingDirectory.includes(file)) {
+                                if (!state.staging.includes(file)) {
+                                    state.staging.push(file);
+                                    updateTerminalOutput(`<div class="command-success">Staged ${file}</div>`, 'success');
+                                } else {
+                                    updateTerminalOutput(`<div class="command-output">${file} is already staged.</div>`);
+                                }
+                            } else {
+                                updateTerminalOutput(`<div class="command-error">fatal: pathspec '${file}' did not match any files</div>`, 'error');
+                            }
+                        });
                         break;
 
                     case 'commit':
@@ -1312,31 +2012,29 @@
                             updateTerminalOutput('<div class="command-error">fatal: not a git repository (or any of the parent directories): .git</div>', 'error');
                             return;
                         }
-                        const messageArg = args.find(arg => arg.startsWith('-m'));
-                        if (!messageArg) {
-                            updateTerminalOutput('<div class="command-error">Please provide a commit message using -m "message".</div>', 'error');
+                        if (state.staging.length === 0 && !state.hasConflict) { // added hasConflict check here
+                            updateTerminalOutput('<div class="command-error">nothing to commit, working tree clean</div>', 'error');
                             return;
                         }
-                        const commitMessage = messageArg.substring(3).slice(1, -1); // Extract message from -m "message"
-                        if (state.staging.length > 0) {
-                            const newCommit = {
-                                id: generateCommitId(),
-                                message: commitMessage,
-                                files: [...state.staging], // Copy staged files
-                                parent: state.head
-                            };
-                            state.commits.push(newCommit);
-                            const currentBranchObj = state.branches.find(branch => branch.name === state.currentBranch);
-                            if (currentBranchObj) {
-                                currentBranchObj.commits.push(newCommit);
-                                currentBranchObj.head = newCommit.id;
-                            }
-                            state.head = newCommit.id;
-                            state.staging = []; // Clear staging after commit
-                            updateTerminalOutput(`<div class="command-success">[${state.currentBranch} ${newCommit.id.substring(0, 7)}] ${commitMessage}<br> ${newCommit.files.length} file${newCommit.files.length === 1 ? '' : 's'} changed</div>`, 'success');
-                        } else {
-                            updateTerminalOutput('<div class="command-error">nothing to commit, working tree clean</div>', 'error');
+                        const messageMatch = command.match(/-m\s+"([^"]+)"/);
+                        const commitMessage = messageMatch ? messageMatch[1] : 'No commit message';
+                        const newCommit = {
+                            id: generateCommitId(),
+                            message: commitMessage,
+                            files: [...state.staging],
+                            parent: state.head
+                        };
+
+                        state.commits.push(newCommit);
+                        const currentBranch = state.branches.find(branch => branch.name === state.currentBranch);
+                        if (currentBranch) {
+                            currentBranch.commits.push(newCommit);
+                            currentBranch.head = newCommit.id;
                         }
+                        state.head = newCommit.id;
+                        state.staging = []; // Clear staging after commit
+                        state.hasConflict = false; // Reset conflict status after commit
+                        updateTerminalOutput(`<div class="command-success">[${state.currentBranch} ${newCommit.id.substring(0, 7)}] ${commitMessage}<br> ${newCommit.files.length} file(s) changed</div>`, 'success');
                         break;
 
                     case 'branch':
@@ -1345,10 +2043,11 @@
                             return;
                         }
                         if (gitArgs.length === 0) {
-                            let branchListOutput = '';
+                            let branchListOutput = '<div>* ' + state.currentBranch + '</div>';
                             state.branches.forEach(branch => {
-                                const prefix = branch.name === state.currentBranch ? '* ' : '  ';
-                                branchListOutput += `<div>${prefix}${branch.name}</div>`;
+                                if (branch.name !== state.currentBranch) {
+                                    branchListOutput += '<div>  ' + branch.name + '</div>';
+                                }
                             });
                             updateTerminalOutput(branchListOutput);
                         } else {
@@ -1356,7 +2055,7 @@
                             if (state.branches.some(branch => branch.name === newBranchName)) {
                                 updateTerminalOutput(`<div class="command-error">fatal: A branch named '${newBranchName}' already exists.</div>`, 'error');
                             } else {
-                                state.branches.push({ name: newBranchName, commits: [...state.branches.find(b => b.name === state.currentBranch).commits], head: state.head }); //start from current branch head
+                                state.branches.push({ name: newBranchName, commits: [], head: state.head });
                                 updateTerminalOutput(`<div class="command-success">Created branch ${newBranchName}</div>`, 'success');
                             }
                         }
@@ -1367,13 +2066,18 @@
                             updateTerminalOutput('<div class="command-error">fatal: not a git repository (or any of the parent directories): .git</div>', 'error');
                             return;
                         }
-                        const branchNameToCheckout = gitArgs[0];
-                        if (state.branches.some(branch => branch.name === branchNameToCheckout)) {
-                            state.currentBranch = branchNameToCheckout;
-                            state.head = state.branches.find(b => b.name === branchNameToCheckout).head;
-                            updateTerminalOutput(`<div class="command-success">Switched to branch '${branchNameToCheckout}'</div>`, 'success');
+                        const branchOrCommit = gitArgs[0];
+                        if (!branchOrCommit) {
+                            updateTerminalOutput('<div class="command-error">usage: git checkout <branch></div>', 'error');
+                            return;
+                        }
+                        const targetBranch = state.branches.find(branch => branch.name === branchOrCommit);
+                        if (targetBranch) {
+                            state.currentBranch = branchOrCommit;
+                            state.head = targetBranch.head;
+                            updateTerminalOutput(`<div class="command-success">Switched to branch '${branchOrCommit}'</div>`, 'success');
                         } else {
-                            updateTerminalOutput(`<div class="command-error">error: branch '${branchNameToCheckout}' not found</div>`, 'error');
+                            updateTerminalOutput(`<div class="command-error">fatal: branch '${branchOrCommit}' not found.</div>`, 'error');
                         }
                         break;
 
@@ -1382,36 +2086,48 @@
                             updateTerminalOutput('<div class="command-error">fatal: not a git repository (or any of the parent directories): .git</div>', 'error');
                             return;
                         }
-                        const branchNameToMerge = gitArgs[0];
-                        const branchToMerge = state.branches.find(b => b.name === branchNameToMerge);
-                        const currentBranchObj = state.branches.find(b => b.name === state.currentBranch);
-
+                        const mergeBranchName = gitArgs[0];
+                        if (!mergeBranchName) {
+                            updateTerminalOutput('<div class="command-error">usage: git merge <branch></div>', 'error');
+                            return;
+                        }
+                        const branchToMerge = state.branches.find(branch => branch.name === mergeBranchName);
                         if (!branchToMerge) {
-                            updateTerminalOutput(`<div class="command-error">fatal: branch '${branchNameToMerge}' not found</div>`, 'error');
+                            updateTerminalOutput(`<div class="command-error">fatal: branch '${mergeBranchName}' not found.</div>`, 'error');
                             return;
                         }
-                        if (branchNameToMerge === state.currentBranch) {
-                            updateTerminalOutput(`<div class="command-error">error: Cannot merge current branch into itself.</div>`, 'error');
-                            return;
+                        state.mergeAttempted = true; // Flag merge attempt for objective check
+
+                        // Simulate conflict for level 4
+                        if (gameState.currentLevel === 3 && mergeBranchName === 'bugfix') {
+                            state.hasConflict = true;
+                            updateTerminalOutput(`<div class="command-error">CONFLICT (content): Merge conflict in shared.txt</div><div class="command-error">Automatic merge failed; fix conflicts and then commit the result.</div>`, 'error');
+                            return; // Stop merge due to conflict
                         }
 
-                        state.mergeAttempted = true; // For objective checking
 
-                        // Simple merge simulation without conflict resolution logic for now (linear history merge)
-                        const commitsToMerge = branchToMerge.commits.filter(commit => !currentBranchObj.commits.some(c => c.id === commit.id));
-
-                        if (commitsToMerge.length > 0) {
-                            commitsToMerge.forEach(commit => {
-                                currentBranchObj.commits.push(commit);
-                                state.commits.push(commit); // Add to global commit list as well if not already there (though should be already)
-                            });
-                            currentBranchObj.head = branchToMerge.head; // Move head to the latest merged commit
-                            state.head = branchToMerge.head;
-
-                            updateTerminalOutput(`<div class="command-success">Successfully merged branch '${branchNameToMerge}' into '${state.currentBranch}'.</div>`, 'success');
-                            updateTerminalOutput(`<div class="command-output">Fast-forward merge.</div>`); // Simplified message
+                        const currentBranchObj = state.branches.find(b => b.name === state.currentBranch);
+                        if (currentBranchObj && branchToMerge && branchToMerge.head) {
+                            // Only merge if no conflict in level 4, otherwise conflict message already sent
+                            if (!(gameState.currentLevel === 3 && mergeBranchName === 'bugfix')) {
+                                // id: generateCommitId(), // original line
+                                const mergeCommit = {
+                                    id: generateCommitId(),
+                                    message: `Merge branch '${mergeBranchName}' into ${state.currentBranch}`,
+                                    files: [...new Set([...currentBranchObj.commits.flatMap(c => c.files), ...branchToMerge.commits.flatMap(c => c.files)])], // Simplified file merge
+                                    parent: state.head // For simplicity, single parent merge commit
+                                };
+                                state.commits.push(mergeCommit);
+                                currentBranchObj.commits.push(mergeCommit);
+                                currentBranchObj.head = mergeCommit.id;
+                                state.head = mergeCommit.id;
+                                updateTerminalOutput(`<div class="command-success">Successfully merged branch '${mergeBranchName}' into ${state.currentBranch}</div>`, 'success');
+                            }
                         } else {
-                            updateTerminalOutput(`<div class="command-output">Already up to date.</div>`);
+                            updateTerminalOutput('<div class="command-error">Merge failed. Could not determine branch heads.</div>', 'error');
+                        }
+                        if (gameState.currentLevel === 3 && mergeBranchName === 'bugfix') {
+                            return; // Stop further processing after conflict simulation in Level 4
                         }
                         break;
                     case 'reset':
@@ -1419,17 +2135,22 @@
                             updateTerminalOutput('<div class="command-error">fatal: not a git repository (or any of the parent directories): .git</div>', 'error');
                             return;
                         }
-                        if (args[0] === '--hard' && args[1] === 'HEAD~1') {
-                            if (state.branches.find(b => b.name === state.currentBranch).commits.length > 1) {
-                                state.branches.find(b => b.name === state.currentBranch).commits.pop(); // Remove last commit from branch commits
-                                state.commits.pop(); // Remove last commit from global commits
-                                state.head = state.branches.find(b => b.name === state.currentBranch).commits.length > 0 ? state.branches.find(b => b.name === state.currentBranch).commits.slice(-1)[0].id : null; // Update head
-                                updateTerminalOutput('<div class="command-success">HEAD is now at ' + state.head.substring(0, 7) + '</div>', 'success'); // Simplified message
+                        if (gitArgs[0] === '--hard' && gitArgs[1] === 'HEAD~1') {
+                            if (state.commits.length > 1) {
+                                state.commits.pop(); // Remove last commit
+                                const currentBranchObj = state.branches.find(b => b.name === state.currentBranch);
+                                if (currentBranchObj && currentBranchObj.commits.length > 1) {
+                                    currentBranchObj.commits.pop();
+                                    currentBranchObj.head = currentBranchObj.commits[currentBranchObj.commits.length - 1]?.id || null;
+                                }
+                                state.head = currentBranchObj?.head || null;
+
+                                updateTerminalOutput('<div class="command-success">HEAD is now at ' + (state.head ? state.head.substring(0, 7) : 'initial commit') + '</div>', 'success');
                             } else {
-                                updateTerminalOutput('<div class="command-error">Already at initial commit, cannot reset further.</div>', 'error');
+                                updateTerminalOutput('<div class="command-output">Already at initial commit. Cannot reset further.</div>');
                             }
                         } else {
-                            updateTerminalOutput('<div class="command-error">Usage: git reset --hard HEAD~1</div>', 'error');
+                            updateTerminalOutput('<div class="command-error">usage: git reset [--hard HEAD~1]</div>', 'error');
                         }
                         break;
                     case 'revert':
@@ -1437,24 +2158,28 @@
                             updateTerminalOutput('<div class="command-error">fatal: not a git repository (or any of the parent directories): .git</div>', 'error');
                             return;
                         }
-                        if (args[0] === 'HEAD') {
-                            if (state.branches.find(b => b.name === state.currentBranch).commits.length > 0) {
-                                const commitToRevert = state.branches.find(b => b.name === state.currentBranch).commits.slice(-1)[0];
+                        if (gitArgs[0] === 'HEAD') {
+                            if (state.commits.length > 0) {
+                                const commitToRevert = state.commits[state.commits.length - 1];
                                 const revertCommit = {
                                     id: generateCommitId(),
                                     message: `Revert "${commitToRevert.message}"`,
-                                    files: [...state.workingDirectory], // In real git, this is more complex, simplified here.
+                                    files: [...commitToRevert.files], // Files are same as reverted commit for simplicity
                                     parent: state.head
                                 };
                                 state.commits.push(revertCommit);
-                                state.branches.find(b => b.name === state.currentBranch).commits.push(revertCommit);
+                                const currentBranchObj = state.branches.find(b => b.name === state.currentBranch);
+                                if (currentBranchObj) {
+                                    currentBranchObj.commits.push(revertCommit);
+                                    currentBranchObj.head = revertCommit.id;
+                                }
                                 state.head = revertCommit.id;
-                                updateTerminalOutput(`<div class="command-success">[${state.currentBranch} ${revertCommit.id.substring(0, 7)}] Revert "${commitToRevert.message}"<br> 1 file changed</div>`, 'success'); // Simplified message
+                                updateTerminalOutput(`<div class="command-success">[${state.currentBranch} ${revertCommit.id.substring(0, 7)}] Revert "${commitToRevert.message}"<br> ${revertCommit.files.length} file(s) changed</div>`, 'success');
                             } else {
-                                updateTerminalOutput('<div class="command-error">No commits to revert.</div>', 'error');
+                                updateTerminalOutput('<div class="command-output">No commits to revert.</div>');
                             }
                         } else {
-                            updateTerminalOutput('<div class="command-error">Usage: git revert HEAD</div>', 'error');
+                            updateTerminalOutput('<div class="command-error">usage: git revert HEAD</div>', 'error');
                         }
                         break;
                     case 'stash':
@@ -1463,24 +2188,28 @@
                             return;
                         }
                         if (gitArgs.length === 0) { // git stash
-                            if (state.workingDirectory.length > 0) { // Simplified check for changes
-                                state.stashedChanges.push({ files: [...state.workingDirectory], branch: state.currentBranch });
-                                state.workingDirectory = []; // Clear working directory for simplicity
-                                updateTerminalOutput('<div class="command-success">Saved working directory and index state WIP on ' + state.currentBranch + ': ...</div>', 'success');
-                                updateTerminalOutput('<div class="command-output">HEAD is now at ' + state.head.substring(0, 7) + ' ...</div>');
+                            if (state.workingDirectory.length > 0) {
+                                state.stashedChanges.push({
+                                    files: [...state.workingDirectory],
+                                    staging: [...state.staging]
+                                });
+                                state.workingDirectory = [];
+                                state.staging = [];
+                                updateTerminalOutput('<div class="command-success">Saved working directory and staging area changes to stash</div>', 'success');
                             } else {
                                 updateTerminalOutput('<div class="command-output">No local changes to save</div>');
                             }
                         } else if (gitArgs[0] === 'pop') { // git stash pop
                             if (state.stashedChanges.length > 0) {
                                 const lastStash = state.stashedChanges.pop();
-                                state.workingDirectory = lastStash.files; // Restore files
-                                updateTerminalOutput('<div class="command-success">On branch ' + state.currentBranch + ': changes returned to working directory.</div>', 'success');
+                                state.workingDirectory = lastStash.files;
+                                state.staging = lastStash.staging;
+                                updateTerminalOutput('<div class="command-success">Restored working directory and staging area from stash</div>', 'success');
                             } else {
                                 updateTerminalOutput('<div class="command-error">No stash entries found.</div>', 'error');
                             }
                         } else {
-                            updateTerminalOutput('<div class="command-error">Usage: git stash [pop]</div>', 'error');
+                            updateTerminalOutput('<div class="command-error">usage: git stash [pop]</div>', 'error');
                         }
                         break;
                     case 'log':
@@ -1489,9 +2218,15 @@
                             return;
                         }
                         let logOutput = '';
-                        state.branches.find(b => b.name === state.currentBranch).commits.slice().reverse().forEach(commit => { // Reverse to show latest first
-                            logOutput += `<div class="command-output">commit ${commit.id}<br>Author: You <you@example.com><br>Date:   Now<br><br>    ${commit.message}</div><br>`; // Simplified log format
+                        state.commits.slice().reverse().forEach(commit => { // Reverse to show latest first
+                            logOutput += `<div><div style="font-weight: bold;">commit ${commit.id}</div>`;
+                            logOutput += `<div>Author: You <you@example.com></div>`; // Simplified author
+                            logOutput += `<div>Date:   ${new Date().toDateString()}</div><br>`; // Simplified date
+                            logOutput += `<div>    ${commit.message}</div><br></div>`;
                         });
+                        if (logOutput === '') {
+                            logOutput = '<div>No commits yet.</div>';
+                        }
                         updateTerminalOutput(logOutput);
                         break;
                     case 'tag':
@@ -1503,29 +2238,272 @@
                             const tagName = gitArgs[0];
                             if (!state.tags.includes(tagName)) {
                                 state.tags.push(tagName);
-                                updateTerminalOutput(`<div class="command-success">Created tag '${tagName}'</div>`, 'success');
+                                updateTerminalOutput(`<div class="command-success">Created tag ${tagName}</div>`, 'success');
                             } else {
-                                updateTerminalOutput(`<div class="command-output">Tag '${tagName}' already exists.</div>`);
+                                updateTerminalOutput(`<div class="command-output">Tag ${tagName} already exists.</div>`);
                             }
-                        } else {
-                            updateTerminalOutput('<div class="command-error">Usage: git tag <tagname></div>', 'error');
+                        } else if (gitArgs.length === 0) {
+                            if (state.tags.length > 0) {
+                                updateTerminalOutput(`<div>${state.tags.join('<br>')}</div>`);
+                            } else {
+                                updateTerminalOutput('<div>No tags yet.</div>');
+                            }
+                        }
+                         else {
+                            updateTerminalOutput('<div class="command-error">usage: git tag <tagname></div>', 'error');
                         }
                         break;
+                    case 'remote':
+                        if (!state.initialized) {
+                            updateTerminalOutput('<div class="command-error">fatal: not a git repository (or any of the parent directories): .git</div>', 'error');
+                            return;
+                        }
+                        if (gitArgs[0] === 'add' && gitArgs.length === 3) {
+                            const remoteName = gitArgs[1];
+                            const remoteUrl = gitArgs[2];
+                            state.remotes[remoteName] = remoteUrl;
+                            updateTerminalOutput(`<div class="command-success">Added remote ${remoteName} with URL ${remoteUrl}</div>`, 'success');
+                        } else {
+                            updateTerminalOutput('<div class="command-error">usage: git remote add &lt;name&gt; &lt;URL&gt;</div>', 'error');
+                        }
+                        break;
+                    case 'fetch':
+                        if (!state.initialized) {
+                            updateTerminalOutput('<div class="command-error">fatal: not a git repository (or any of the parent directories): .git</div>', 'error');
+                            return;
+                        }
+                        if (gitArgs[0] === 'origin') {
+                            state.fetchedRemote = true;
+                            // Simulate fetching a new commit from remote
+                            const remoteCommit = {
+                                id: generateCommitId(),
+                                message: "Remote commit",
+                                files: ['remote_file.txt'],
+                                parent: state.head
+                            };
+                            state.commits.push(remoteCommit);
+                            const currentBranchObj = state.branches.find(b => b.name === state.currentBranch);
+                            if (currentBranchObj) {
+                                currentBranchObj.commits.push(remoteCommit);
+                                currentBranchObj.head = remoteCommit.id;
+                            }
+                            updateTerminalOutput('<div class="command-success">Fetching from origin</div>', 'success');
+                        } else {
+                            updateTerminalOutput('<div class="command-error">usage: git fetch origin</div>', 'error');
+                        }
+                        break;
+                    case 'pull':
+                        if (!state.initialized) {
+                            updateTerminalOutput('<div class="command-error">fatal: not a git repository (or any of the parent directories): .git</div>', 'error');
+                            return;
+                        }
+                        if (gitArgs[0] === 'origin' && gitArgs[1] === 'master') {
+                            state.pulledRemote = true;
+                            // Simulate pulling a new commit from remote and merging
+                            const remoteCommit = {
+                                id: generateCommitId(),
+                                message: "Pulled remote commit",
+                                files: ['pulled_file.txt'],
+                                parent: state.head
+                            };
+                            state.commits.push(remoteCommit);
+                            const currentBranchObj = state.branches.find(b => b.name === state.currentBranch);
+                            if (currentBranchObj) {
+                                currentBranchObj.commits.push(remoteCommit);
+                                currentBranchObj.head = remoteCommit.id;
+                            }
+                            state.head = remoteCommit.id;
+                            updateTerminalOutput('<div class="command-success">Pulled from origin master</div>', 'success');
+                        } else {
+                            updateTerminalOutput('<div class="command-error">usage: git pull origin master</div>', 'error');
+                        }
+                        break;
+                    case 'push':
+                        if (!state.initialized) {
+                            updateTerminalOutput('<div class="command-error">fatal: not a git repository (or any of the parent directories): .git</div>', 'error');
+                            return;
+                        }
+                        if (gitArgs[0] === 'origin' && gitArgs[1] === 'master') {
+                            state.pushedRemote = true;
+                            updateTerminalOutput('<div class="command-success">Pushed to origin master</div>', 'success');
+                        } else {
+                            updateTerminalOutput('<div class="command-error">usage: git push origin master</div>', 'error');
+                        }
+                        break;
+                    case 'cherry-pick':
+                        if (!state.initialized) {
+                            updateTerminalOutput('<div class="command-error">fatal: not a git repository (or any of the parent directories): .git</div>', 'error');
+                            return;
+                        }
+                        if (gitArgs.length === 1) {
+                            const commitIdToPick = gitArgs[0];
+                            state.cherryPicked = true; // For objective check - simplified cherry-pick sim
+                            updateTerminalOutput(`<div class="command-success">Cherry-picked commit ${commitIdToPick}</div>`, 'success');
+                        } else {
+                            updateTerminalOutput('<div class="command-error">usage: git cherry-pick &lt;commit&gt;</div>', 'error');
+                        }
+                        break;
+                    case 'rebase':
+                        if (!state.initialized) {
+                            updateTerminalOutput('<div class="command-error">fatal: not a git repository (or any of the parent directories): .git</div>', 'error');
+                            return;
+                        }
+                        if (gitArgs[0] === '-i' && gitArgs[1] === 'HEAD~2') {
+                            // Simulate interactive rebase editor - for simplicity, just complete the objective
+                            if (gameState.currentLevel === 25) state.rebased = true; // For reorder level
+                            if (gameState.currentLevel === 26) state.squashed = true; // For squash level
+                            updateTerminalOutput('<div class="command-success">Interactive rebase started (simulated editor actions)... Rebase completed.</div>', 'success');
+                        } else {
+                            updateTerminalOutput('<div class="command-error">usage: git rebase -i HEAD~2</div>', 'error');
+                        }
+                        break;
+                    case 'commit':
+                        if (gitArgs[0] === '--amend' && gitArgs[1] === '--no-edit') {
+                            if (gameState.staging.length > 0) {
+                                state.amended = true;
+                                const lastCommit = state.commits.pop(); // Remove last commit to amend it
+                                const amendedCommit = { // Create new amended commit
+                                    id: lastCommit.id, // Keep same ID for simplicity in simulation
+                                    message: lastCommit.message,
+                                    files: [...new Set([...lastCommit.files, ...state.staging])], // Add staged files
+                                    parent: lastCommit.parent
+                                };
+                                state.commits.push(amendedCommit); // Add amended commit back
+                                const currentBranchObj = state.branches.find(b => b.name === state.currentBranch);
+                                if (currentBranchObj) {
+                                    currentBranchObj.commits.pop();
+                                    currentBranchObj.commits.push(amendedCommit);
+                                    currentBranchObj.head = amendedCommit.id;
+                                }
+                                state.head = amendedCommit.id;
+                                state.staging = []; // Clear staging after amend
+                                updateTerminalOutput('<div class="command-success">Commit amended.</div>', 'success');
+                            } else {
+                                updateTerminalOutput('<div class="command-error">No changes staged to amend.</div>', 'error');
+                            }
+                        }
+                        else if (gitArgs[0] === '-m') { // Handle regular commit with -m
+                            if (!state.initialized) {
+                                updateTerminalOutput('<div class="command-error">fatal: not a git repository (or any of the parent directories): .git</div>', 'error');
+                                return;
+                            }
+                            if (state.staging.length === 0 && !state.hasConflict) { // added hasConflict check here
+                                updateTerminalOutput('<div class="command-error">nothing to commit, working tree clean</div>', 'error');
+                                return;
+                            }
+                            const messageMatch = command.match(/-m\s+"([^"]+)"/);
+                            const commitMessage = messageMatch ? messageMatch[1] : 'No commit message';
+                            const newCommit = {
+                                id: generateCommitId(),
+                                message: commitMessage,
+                                files: [...state.staging],
+                                parent: state.head
+                            };
+
+                            state.commits.push(newCommit);
+                            const currentBranch = state.branches.find(branch => branch.name === state.currentBranch);
+                            if (currentBranch) {
+                                currentBranch.commits.push(newCommit);
+                                currentBranch.head = newCommit.id;
+                            }
+                            state.head = newCommit.id;
+                            state.staging = []; // Clear staging after commit
+                            state.hasConflict = false; // Reset conflict status after commit
+                            updateTerminalOutput(`<div class="command-success">[${state.currentBranch} ${newCommit.id.substring(0, 7)}] ${commitMessage}<br> ${newCommit.files.length} file(s) changed</div>`, 'success');
+                        }
+                        break;
+
+                    case 'config':
+                        if (gitArgs[0] === '--global' && gitArgs[1].startsWith('alias.')) {
+                            const aliasName = gitArgs[1].split('.')[1];
+                            const aliasCommand = gitArgs[2];
+                            state.aliases[aliasName] = aliasCommand;
+                            updateTerminalOutput(`<div class="command-success">Configured alias '${aliasName}' for '${aliasCommand}'</div>`, 'success');
+                        } else {
+                            updateTerminalOutput('<div class="command-error">usage: git config --global alias.&lt;alias&gt; &lt;command&gt;</div>', 'error');
+                        }
+                        break;
+                    case 'clean':
+                        if (gitArgs[0] === '-fd') {
+                            // Simulate cleaning untracked files and directories
+                            state.workingDirectory = state.workingDirectory.filter(file => file === 'file1.txt'); // Keep only file1.txt
+                            updateTerminalOutput('<div class="command-success">Removed untracked files and directories.</div>', 'success');
+                        } else {
+                            updateTerminalOutput('<div class="command-error">usage: git clean -fd</div>', 'error');
+                        }
+                        break;
+                    case 'diff':
+                        if (gitArgs.length === 0) {
+                            state.diffViewed = true; // For objective check - just viewing diff is enough for sim
+                            updateTerminalOutput('<div>Simulated diff output... (check visualization and file list for changes)</div>');
+                        } else {
+                            updateTerminalOutput('<div class="command-error">usage: git diff</div>', 'error');
+                        }
+                        break;
+                    case 'show':
+                        if (gitArgs[0] === 'HEAD') {
+                            state.showViewed = true; // For objective check - viewing show is enough
+                            updateTerminalOutput('<div>Simulated git show HEAD output... (check commit details in visualization)</div>');
+                        } else {
+                            updateTerminalOutput('<div class="command-error">usage: git show HEAD</div>', 'error');
+                        }
+                        break;
+                    case 'grep':
+                        if (gitArgs.length === 1) {
+                            const searchText = gitArgs[0].replace(/"/g, ''); // Remove quotes if present
+                            if (gameState.commits.some(commit => commit.content && commit.content.includes(searchText))) {
+                                state.grepUsed = true; // For objective check - grep used and text found
+                                updateTerminalOutput(`<div class="command-success">Found "${searchText}" in commit history. (Simulated output)</div>`, 'success');
+                            } else {
+                                updateTerminalOutput(`<div class="command-output">No matches for "${searchText}" found in commit history. (Simulated output)</div>`);
+                            }
+
+                        } else {
+                            updateTerminalOutput('<div class="command-error">usage: git grep "&lt;pattern&gt;"</div>', 'error');
+                        }
+                        break;
+                    case 'bisect':
+                        if (gitArgs[0] === 'start') {
+                            state.bisectStarted = true;
+                            updateTerminalOutput('<div class="command-success">Bisect started</div>', 'success');
+                        } else if (gitArgs[0] === 'bad') {
+                            if (state.bisectStarted) {
+                                state.bisectBad = true;
+                                updateTerminalOutput('<div class="command-success">Marked as bad commit</div>', 'success');
+                            } else {
+                                updateTerminalOutput('<div class="command-error">Bisect not started. Use \'git bisect start\' first.</div>', 'error');
+                            }
+                        } else if (gitArgs[0] === 'good') {
+                            if (state.bisectStarted) {
+                                state.bisectGood = true;
+                                updateTerminalOutput('<div class="command-success">Marked as good commit</div>', 'success');
+                            } else {
+                                updateTerminalOutput('<div class="command-error">Bisect not started. Use \'git bisect start\' first.</div>', 'error');
+                            }
+                        } else if (gitArgs[0] === 'reset') {
+                            state.bisectStarted = false;
+                            updateTerminalOutput('<div class="command-success">Bisect reset</div>', 'success');
+                        }
+                        break;
+
 
                     default:
                         updateTerminalOutput(`<div class="command-error">git: '${gitSubcommand}' is not a git command. See 'git --help'</div>`, 'error');
                 }
             } else if (baseCommand === 'help') {
                 showHelpModal();
-            } else if (baseCommand === 'next') {
-                if (gameState.currentLevel < gameState.challenges.length - 1) {
-                    gameState.currentLevel++;
-                    loadLevel(gameState.currentLevel);
+            } else if (baseCommand === 'levels') {
+                showLevelModal();
+            }
+            else if (baseCommand === 'next') {
+                if (state.currentLevel < state.challenges.length - 1) {
+                    state.currentLevel++;
+                    loadLevel(state.currentLevel);
                 } else {
                     updateTerminalOutput('<div>You have completed all challenges!</div>');
                 }
             } else if (baseCommand === 'reset') {
-                loadLevel(gameState.currentLevel); // Reload current level to reset
+                loadLevel(state.currentLevel); // Reload current level to reset
                 updateTerminalOutput('<div>Challenge reset.</div>');
             } else if (baseCommand === 'touch') { // Simulate file creation
                 const fileName = args[0];
@@ -1540,15 +2518,39 @@
                     updateTerminalOutput('<div class="command-error">Usage: touch <filename></div>', 'error');
                 }
             }
-            else if (baseCommand === 'edit') { // Simulate file editing
+            else if (baseCommand === 'edit') { // Simulate file editing for conflict resolution and other tasks
                 const fileName = args[0];
-                if (fileName && state.workingDirectory.includes(fileName)) {
-                     updateTerminalOutput(`<div class="command-success">Simulating editing of ${fileName}. File marked as modified.</div>`, 'success');
-                } else if (!fileName) {
+                if (fileName === 'shared.txt' && state.hasConflict) { // Only for conflict file in conflict level
+                     updateTerminalOutput(`<div class="command-success">Simulating editing of ${fileName}. You have resolved the conflict. Stage the file to commit.</div>`, 'success');
+                } else if (fileName === '.gitignore') {
+                    if (args.length > 1 && args[1]) {
+                        state.gitIgnoreContent = args.slice(1).join(' '); // Simulate setting .gitignore content
+                        updateTerminalOutput(`<div class="command-success">Simulated editing of ${fileName}. Content set to: ${state.gitIgnoreContent}</div>`, 'success');
+                    } else {
+                         updateTerminalOutput('<div class="command-error">Usage: edit .gitignore &lt;content&gt;</div>', 'error');
+                    }
+
+                }
+                else if (fileName === 'file1.txt') {
+                    state.diffViewed = true; // Simulate file modification for diff level
+                    updateTerminalOutput(`<div class="command-success">Simulated editing of ${fileName}. File modified for diff example.</div>`, 'success');
+                }
+                else if (!fileName) {
                     updateTerminalOutput('<div class="command-error">Usage: edit <filename></div>', 'error');
                 }
                 else {
-                    updateTerminalOutput(`<div class="command-error">File ${fileName} not found in working directory.</div>`, 'error');
+                    updateTerminalOutput(`<div class="command-error">File ${fileName} not found or not the conflicting file.</div>`, 'error');
+                }
+            }
+             else if (baseCommand === 'solution') {
+                 showSolution();
+             }
+            else if (baseCommand === 'ci') { // Check for alias 'ci'
+                if (state.aliases.ci === 'commit') {
+                    const aliasCommand = `git commit ${args.join(' ')}`;
+                    gitCommandProcessor(gameState, aliasCommand); // Process as 'git commit'
+                } else {
+                    updateTerminalOutput(`<div class="command-error">Command not recognized: ${baseCommand}</div>`, 'error');
                 }
             }
             else {
@@ -1560,8 +2562,21 @@
             checkObjectives();
         }
 
+        function showSolution() {
+            const currentChallenge = gameState.challenges[gameState.currentLevel];
+            if (currentChallenge.solution && currentChallenge.solution.length > 0) {
+                updateTerminalOutput('<div>Solution for Level ' + (gameState.currentLevel + 1) + ':</div>');
+                currentChallenge.solution.forEach(command => {
+                    updateTerminalOutput(`<div class="command-output">> ${command}</div>`); // Display each command
+                });
+                updateTerminalOutput('<div>Type the commands above in the terminal to solve the challenge.</div>');
+            } else {
+                updateTerminalOutput('<div class="command-output">No solution available for this challenge.</div>');
+            }
+        }
 
-        // Event Listeners and UI Handlers
+
+        // Event Listeners and UI Handlers (as before)
         document.getElementById('terminal-input').addEventListener('keydown', function(event) {
             if (event.key === 'Enter') {
                 const command = this.value;
@@ -1574,10 +2589,12 @@
         });
 
         document.getElementById('help-btn').addEventListener('click', showHelpModal);
+        document.getElementById('level-select-btn').addEventListener('click', showLevelModal);
         document.getElementById('reset-btn').addEventListener('click', () => loadLevel(gameState.currentLevel));
         document.getElementById('hint-button').addEventListener('click', () => {
             document.getElementById('hints').classList.toggle('visible');
         });
+        document.getElementById('solution-button').addEventListener('click', showSolution);
         document.getElementById('zoom-in').addEventListener('click', () => {
             gameState.zoom = Math.min(gameState.zoom + 0.1, 2); // Zoom in, limit to 2x
             updateGraph();
@@ -1586,8 +2603,10 @@
             gameState.zoom = Math.max(gameState.zoom - 0.1, 0.5); // Zoom out, limit to 0.5x
             updateGraph();
         });
+        document.getElementById('download-debug-log').addEventListener('click', downloadDebugLog);
 
-        // Tooltip functions
+
+        // Tooltip functions (as before)
         let tooltipTimeout;
         function showTooltip(event, text) {
             const tooltipElement = document.getElementById('tooltip');
@@ -1604,13 +2623,15 @@
             }, 100);
         }
 
-        // Modal functions
+        // Modal functions (as before)
         function showModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
             document.getElementById(modalId).classList.add('visible');
         }
 
         function hideModal(modalId) {
             document.getElementById(modalId).classList.remove('visible');
+            document.getElementById(modalId).classList.add('hidden');
         }
 
         function showHelpModal() {
@@ -1628,7 +2649,7 @@
             showModal('success-modal');
         }
 
-        // Close modal buttons
+        // Close modal buttons (as before)
         document.getElementById('close-help').addEventListener('click', () => hideModal('help-modal'));
         document.getElementById('close-level').addEventListener('click', () => hideModal('level-modal'));
         document.getElementById('close-success').addEventListener('click', () => hideModal('success-modal'));
@@ -1642,7 +2663,7 @@
             }
         });
 
-        // Level Selection Modal
+        // Level Selection Modal (as before)
         function populateLevelSelector() {
             const levelSelectorDiv = document.getElementById('level-selector');
             gameState.challenges.forEach((challenge, index) => {
@@ -1656,6 +2677,9 @@
                 if (gameState.completedLevels.includes(index)) {
                     levelButton.classList.add('completed');
                 }
+                if (gameState.wipLevels.includes(index)) {
+                    levelButton.classList.add('wip');
+                }
                 levelSelectorDiv.appendChild(levelButton);
             });
         }
@@ -1668,15 +2692,20 @@
                 } else {
                     button.classList.remove('completed');
                 }
+                if (gameState.wipLevels.includes(index)) {
+                    button.classList.add('wip');
+                } else {
+                    button.classList.remove('wip');
+                }
             });
         }
 
-        // Level Loading
+        // Level Loading (Modified - checkObjectives and runLevelTestsForLevel moved)
         function loadLevel(levelIndex) {
             gameState.currentLevel = levelIndex;
             const currentChallenge = gameState.challenges[levelIndex];
             currentChallenge.setupFn(gameState); // Reset game state for the level
-            gameState.terminalOutput = "<div>Welcome to Git Command Challenge!</div><div>Type 'help' to see available commands or 'next' to skip to the next challenge.</div>";
+            gameState.terminalOutput = "<div>Welcome to Git Command Challenge!</div><div>Type 'help' to see available commands or 'levels' to select level, 'next' to skip or 'solution' to show solution.</div>";
             document.getElementById('terminal-output').innerHTML = gameState.terminalOutput; // Clear terminal output
 
             updateChallengeInfo();
@@ -1685,13 +2714,115 @@
             updateFileList();
             document.getElementById('hints').textContent = currentChallenge.hint;
             document.getElementById('hints').classList.remove('visible'); // Hide hints on level load
+
+            // ********************** TEST EXECUTION START **********************
+            // runLevelTestsForLevel(levelIndex);  <- REMOVED THIS LINE FROM HERE
+            // ********************** TEST EXECUTION END **********************
         }
 
-        // Initial Setup
+        // Initial Setup (as before)
         document.addEventListener('DOMContentLoaded', () => {
             populateLevelSelector();
             loadLevel(0); // Load the first level on page load
+
+            // ********************** RUN ALL TESTS ON INITIAL LOAD, BUT AFTER LEVEL 0 IS LOADED **********************
+            // runAllLevelTests(); // Run all tests after initial level load, but OUTSIDE loadLevel
+            // ********************** TEST EXECUTION END **********************
+
         });
+
+
+        // ********************** UNIT TEST FUNCTIONS START **********************
+
+        function runLevelTestsForLevel(levelIndex) {
+            appendToDebugLog(`\n----- Running Tests for Level ${levelIndex + 1}: ${gameState.challenges[levelIndex].title} -----`);
+            const level = gameState.challenges[levelIndex];
+            const testCommands = level.solution; // Use solution commands for testing, or define separate test commands if needed
+            if (!testCommands || testCommands.length === 0) {
+                appendToDebugLog(`No test commands (using solution) defined for Level ${levelIndex + 1}.`);
+                return;
+            }
+
+            level.setupFn(gameState); // Reset state before each level test run
+            appendToDebugLog(`[Setup]: Game state reset for Level ${levelIndex + 1}`);
+            logGameState("Initial Game State after Setup", levelIndex);
+            logObjectivesStatus("Initial Objectives Status", levelIndex);
+
+            testCommands.forEach((command, index) => {
+                appendToDebugLog(`\n[Test Step ${index + 1}]: Executing command: '${command}'`);
+                gitCommandProcessor(gameState, command);
+                logGameState(`Game State after command '${command}'`, levelIndex);
+                logObjectivesStatus(`Objectives Status after command '${command}'`, levelIndex);
+                checkAndLogObjectiveCompletion(levelIndex, index); // Check and log objective status after each command
+            });
+
+            // const levelCompleted = checkObjectives();  <- REMOVED THIS LINE - DO NOT TRIGGER MODAL FROM TESTS
+            const levelCompleted = level.objectives.every(obj => obj.completed); // Check completion status for log only
+            appendToDebugLog(`\n[Level Completion Check]: Level ${levelIndex + 1} Completed by Tests: ${levelCompleted}`);
+            if (levelCompleted) {
+                appendToDebugLog(`----- Level ${levelIndex + 1} Tests Passed! -----`);
+            } else {
+                appendToDebugLog(`----- Level ${levelIndex + 1} Tests Failed! Level not completed as expected by tests. -----`);
+            }
+        }
+
+
+        function logGameState(message, levelIndex) {
+            const level = gameState.challenges[levelIndex];
+            appendToDebugLog(`[Debug] ${message} - Level ${levelIndex + 1}: ${level.title}`);
+            appendToDebugLog("Current Branch: " + gameState.currentBranch);
+            appendToDebugLog("Head Commit ID: " + gameState.head);
+            appendToDebugLog("Initialized: " + gameState.initialized);
+            appendToDebugLog("Working Directory: " + gameState.workingDirectory);
+            appendToDebugLog("Staging Area: " + gameState.staging);
+            appendToDebugLog("Commits (IDs): " + gameState.commits.map(c => ({id: c.id.substring(0, 7), message: c.message})).map(c => JSON.stringify(c)).join(', '));
+            appendToDebugLog("Branches: " + gameState.branches.map(b => ({name: b.name, head: b.head ? b.head.substring(0, 7) : null})).map(b => JSON.stringify(b)).join(', '));
+            appendToDebugLog("Stashed Changes: " + gameState.stashedChanges.length);
+            appendToDebugLog("Tags: " + gameState.tags);
+            appendToDebugLog("Terminal Output: " + document.getElementById('terminal-output').textContent.trim().substring(0, 200) + "..."); // First 200 chars
+        }
+
+        function logObjectivesStatus(message, levelIndex) {
+            const level = gameState.challenges[levelIndex];
+            appendToDebugLog(`[Debug] ${message} - Level ${levelIndex + 1}: ${level.title} - Objectives`);
+            level.objectives.forEach((objective, index) => {
+                appendToDebugLog(`Objective ${index + 1}: "${objective.text}" - Completed: ${objective.completed}`);
+            });
+        }
+
+        function checkAndLogObjectiveCompletion(levelIndex, commandIndex) {
+            const level = gameState.challenges[levelIndex];
+            level.objectives.forEach((objective, objectiveIndex) => {
+                if (!objective.completed) {
+                    const wasCompleted = objective.completed;
+                    if (level.objectiveCheckFn) { // Use custom check function if available, for level 10
+                        objective.completed = level.objectiveCheckFn();
+                    } else {
+                        objective.completed = objective.checkFn(gameState); // Default check with state
+                    }
+                    if (objective.completed && !wasCompleted) {
+                        appendToDebugLog(`[Objective Update]: Level ${levelIndex + 1}, Step ${commandIndex + 1}: Objective ${objectiveIndex + 1} "${objective.text}" COMPLETED`);
+                    }
+                }
+            });
+        }
+
+
+        function runAllLevelTests() {
+            appendToDebugLog("\n\n----- STARTING ALL LEVEL TESTS -----");
+            debugLogContent = ""; // Clear previous debug log content before running all tests
+            for (let i = 0; i < gameState.challenges.length; i++) {
+                runLevelTestsForLevel(i);
+            }
+            appendToDebugLog("\n----- ALL LEVEL TESTS COMPLETED -----");
+        }
+
+        // Automatically run all tests after page load for debug purposes.
+
+
+        // ********************** UNIT TEST FUNCTIONS END **********************
+
+
     </script>
 </body>
 </html>
