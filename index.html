@@ -1,0 +1,1697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Git Command Challenge</title>
+    <style>
+        :root {
+            --primary: #f05033;
+            --secondary: #4078c0;
+            --success: #6cc644;
+            --error: #bd2c00;
+            --light: #f0f0f0;
+            --dark: #333;
+            --terminal: #282c34;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            background-color: var(--light);
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        header h1 {
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+        }
+
+        header h1 svg {
+            margin-right: 10px;
+        }
+
+        nav button {
+            background-color: var(--secondary);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            margin-left: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+
+        nav button:hover {
+            background-color: #2b5a9b;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .game-container {
+                flex-direction: row;
+            }
+        }
+
+        .visualization {
+            flex: 3;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            min-height: 500px;
+            position: relative;
+        }
+
+        .visualization-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .graph-container {
+            height: 350px;
+            overflow: auto;
+            background: #f8f8f8;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+            padding: 10px;
+            position: relative;
+        }
+
+        #git-graph {
+            position: relative;
+            margin: 20px auto;
+            transition: all 0.5s ease;
+        }
+
+        .commit {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: var(--secondary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            position: absolute;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 2;
+            border: 2px solid white;
+        }
+
+        .commit:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .commit.active {
+            background-color: var(--success);
+            box-shadow: 0 0 10px rgba(108, 198, 68, 0.7);
+        }
+
+        .commit.head {
+            border: 3px solid var(--primary);
+        }
+
+        .branch-label {
+            position: absolute;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            background-color: var(--secondary);
+            color: white;
+            z-index: 1;
+            white-space: nowrap;
+        }
+
+        .branch-label.master {
+            background-color: var(--primary);
+        }
+
+        .branch-label.head {
+            background-color: var(--success);
+        }
+
+        .branch-connector {
+            position: absolute;
+            height: 2px;
+            background-color: var(--secondary);
+            z-index: 1;
+            transform-origin: left center;
+        }
+
+        .branch-connector.active {
+            background-color: var(--success);
+        }
+
+        .file-explorer {
+            border-top: 1px solid #e0e0e0;
+            margin-top: 15px;
+            padding-top: 15px;
+        }
+
+        .file-explorer h3 {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .file {
+            padding: 8px;
+            margin-bottom: 5px;
+            background-color: #f8f8f8;
+            border-radius: 4px;
+            font-family: monospace;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file.modified {
+            background-color: #fff9c4;
+        }
+
+        .file.staged {
+            background-color: #c8e6c9;
+        }
+
+        .file-icon {
+            font-size: 16px;
+            color: var(--secondary);
+        }
+
+        .terminal-container {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .challenge-info {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .challenge-title {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .challenge-description {
+            margin-bottom: 20px;
+        }
+
+        .progress {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--success);
+            transition: width 0.3s ease;
+        }
+
+        .terminal {
+            background-color: var(--terminal);
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .terminal-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #555;
+            padding-bottom: 5px;
+        }
+
+        .terminal-buttons {
+            display: flex;
+        }
+
+        .terminal-button {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        .red { background-color: #ff5f57; }
+        .yellow { background-color: #ffbd2e; }
+        .green { background-color: #28ca41; }
+
+        .terminal-title {
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+
+        .terminal-output {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 5px;
+            font-family: 'Courier New', monospace;
+            line-height: 1.4;
+            margin-bottom: 10px;
+            min-height: 200px;
+            max-height: 250px;
+        }
+
+        .terminal-prompt {
+            display: flex;
+            align-items: center;
+        }
+
+        .prompt-symbol {
+            color: var(--success);
+            margin-right: 8px;
+            font-weight: bold;
+        }
+
+        .terminal-input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-family: 'Courier New', monospace;
+            flex-grow: 1;
+            outline: none;
+        }
+
+        .command-output {
+            margin: 5px 0;
+            padding-left: 20px;
+            color: #d7d7d7;
+        }
+
+        .command-error {
+            color: var(--error);
+        }
+
+        .command-success {
+            color: var(--success);
+        }
+
+        .hint-button {
+            background-color: #555;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+
+        .hint-button:hover {
+            background-color: #666;
+        }
+
+        .hints {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #444;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .hints.visible {
+            display: block;
+        }
+
+        .tooltip {
+            position: absolute;
+            background-color: #333;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            max-width: 200px;
+            z-index: 10;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            pointer-events: none;
+            transition: opacity 0.3s;
+            opacity: 0;
+        }
+
+        .tooltip.visible {
+            opacity: 1;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .modal.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 24px;
+            color: #999;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+        }
+
+        .close-modal:hover {
+            color: var(--error);
+        }
+
+        .success-message {
+            color: var(--success);
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+            font-size: 1.2rem;
+        }
+
+        .command-list {
+            background-color: #f8f8f8;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .command-list h4 {
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .command-list ul {
+            list-style-type: none;
+            columns: 2;
+        }
+
+        .command-list li {
+            margin-bottom: 5px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .level-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .level-btn {
+            flex-grow: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            background-color: var(--secondary);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+
+        .level-btn:hover {
+            background-color: #2b5a9b;
+        }
+
+        .level-btn.completed {
+            background-color: var(--success);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>
+                <svg width="30" height="30" viewBox="0 0 92 92" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M90.155 41.965L50.036 1.847c-2.434-2.434-6.376-2.434-8.81 0l-8.301 8.3 11.16 11.16c2.595-0.875 5.57-0.288 7.64 1.78 2.086 2.086 2.664 5.095 1.766 7.7l10.757 10.757c2.605-0.898 5.614-0.32 7.7 1.766 2.912 2.911 2.912 7.633 0 10.545-2.911 2.911-7.633 2.911-10.545 0-2.912-2.911-2.731-5.409-1.622-8.107l-10.039-10.039v26.358c0.711 0.351 1.383 0.826 1.971 1.412 2.912 2.911 2.912 7.633 0 10.545-2.911 2.911-7.634 2.911-10.545 0-2.912-2.912-2.912-7.634 0-10.545 0.724-0.724 1.56-1.268 2.446-1.631v-26.598c-0.886-0.363-1.722-0.907-2.446-1.631-2.2-2.199-2.732-5.428-1.612-8.145l-11-11-29.039 29.038c-2.434 2.434-2.434 6.377 0 8.811l40.12 40.119c2.435 2.433 6.376 2.433 8.81 0l39.933-39.934c2.433-2.435 2.433-6.376 0-8.81" fill="#f05033"/>
+                </svg>
+                Git Command Challenge
+            </h1>
+            <nav>
+                <button id="help-btn">Help</button>
+                <button id="reset-btn">Reset</button>
+            </nav>
+        </header>
+
+        <div class="game-container">
+            <div class="visualization">
+                <div class="visualization-header">
+                    <h2>Repository Visualization</h2>
+                    <div>
+                        <button id="zoom-in">+</button>
+                        <button id="zoom-out">-</button>
+                    </div>
+                </div>
+                <div class="graph-container">
+                    <div id="git-graph"></div>
+                </div>
+                <div class="file-explorer">
+                    <h3>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 7V17C3 18.1046 3.89543 19 5 19H19C20.1046 19 21 18.1046 21 17V9C21 7.89543 20.1046 7 19 7H13L11 5H5C3.89543 5 3 5.89543 3 7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Working Directory
+                    </h3>
+                    <div id="file-list"></div>
+                </div>
+            </div>
+
+            <div class="terminal-container">
+                <div class="challenge-info">
+                    <h2 class="challenge-title" id="challenge-title">Loading challenge...</h2>
+                    <div class="challenge-description" id="challenge-description">
+                        Please wait while we set up your environment.
+                    </div>
+                    <div class="progress">
+                        <span id="current-level">Level 1/10</span>
+                        <span id="completion-status">0% Complete</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="terminal">
+                    <div class="terminal-header">
+                        <div class="terminal-buttons">
+                            <div class="terminal-button red"></div>
+                            <div class="terminal-button yellow"></div>
+                            <div class="terminal-button green"></div>
+                        </div>
+                        <div class="terminal-title">git-bash</div>
+                    </div>
+
+                    <div class="terminal-output" id="terminal-output">
+                        <div>Welcome to Git Command Challenge!</div>
+                        <div>Type 'help' to see available commands or 'next' to skip to the next challenge.</div>
+                    </div>
+
+                    <div class="terminal-prompt">
+                        <span class="prompt-symbol">$</span>
+                        <input type="text" class="terminal-input" id="terminal-input" placeholder="Type git commands here..." autocomplete="off">
+                    </div>
+
+                    <button class="hint-button" id="hint-button">Show Hint</button>
+                    <div class="hints" id="hints">
+                        Try using the "git" command followed by a subcommand.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <div class="modal" id="help-modal">
+        <div class="modal-content">
+            <button class="close-modal" id="close-help">×</button>
+            <h2>Git Command Challenge Help</h2>
+            <p>This game helps you learn Git commands by completing practical challenges. You'll work with a simulated Git repository and use real Git commands to solve problems.</p>
+
+            <h3>How to Play:</h3>
+            <ul>
+                <li>Read the challenge description</li>
+                <li>Type Git commands in the terminal</li>
+                <li>Watch the repository visualization update</li>
+                <li>Complete the challenge to move to the next level</li>
+            </ul>
+
+            <div class="command-list">
+                <h4>Common Git Commands:</h4>
+                <ul>
+                    <li><code>git init</code></li>
+                    <li><code>git status</code></li>
+                    <li><code>git add <file></code></li>
+                    <li><code>git commit -m "message"</code></li>
+                    <li><code>git log</code></li>
+                    <li><code>git branch</code></li>
+                    <li><code>git checkout <branch></code></li>
+                    <li><code>git merge <branch></code></li>
+                    <li><code>git rebase <branch></code></li>
+                    <li><code>git reset</code></li>
+                    <li><code>git revert</code></li>
+                    <li><code>git stash</code></li>
+                    <li><code>git cherry-pick</code></li>
+                    <li><code>git tag</code></li>
+                    <li><code>git remote</code></li>
+                </ul>
+            </div>
+
+            <h3>Game Commands:</h3>
+            <ul>
+                <li><code>help</code> - Show this help</li>
+                <li><code>next</code> - Skip to next challenge</li>
+                <li><code>reset</code> - Reset current challenge</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="modal" id="level-modal">
+        <div class="modal-content">
+            <button class="close-modal" id="close-level">×</button>
+            <h2>Select Challenge Level</h2>
+            <p>Choose a challenge to work on:</p>
+            <div class="level-selector" id="level-selector">
+                <!-- Level buttons will be added here by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="success-modal">
+        <div class="modal-content">
+            <button class="close-modal" id="close-success">×</button>
+            <h2>Challenge Completed!</h2>
+            <div class="success-message" id="success-message">
+                You've successfully completed the challenge!
+            </div>
+            <p id="success-details">Well done on mastering this Git concept.</p>
+            <button id="next-challenge" class="level-btn">Next Challenge</button>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        const gameState = {
+            currentLevel: 0,
+            completedLevels: [],
+            repository: null,
+            zoom: 1,
+            panOffset: { x: 0, y: 0 },
+            challenges: [
+                {
+                    title: "Getting Started with Git",
+                    description: "Initialize a new Git repository and make your first commit.",
+                    objectives: [
+                        { text: "Initialize a new Git repository", completed: false, checkFn: state => state.initialized },
+                        { text: "Add file.txt to staging area", completed: false, checkFn: state => state.staging.includes('file.txt') },
+                        { text: "Commit your changes with a message", completed: false, checkFn: state => state.commits.length > 0 }
+                    ],
+                    hint: "Use 'git init' to create a new repository, then 'git add file.txt' and 'git commit -m \"your message\"'.",
+                    setupFn: (state) => {
+                        state.initialized = false;
+                        state.workingDirectory = ['file.txt'];
+                        state.staging = [];
+                        state.commits = [];
+                        state.branches = [{ name: 'master', commits: [], head: null }];
+                        state.currentBranch = 'master';
+                        state.head = null;
+                    }
+                },
+                {
+                    title: "Branching Out",
+                    description: "Create a new branch and switch to it to work on a new feature.",
+                    objectives: [
+                        { text: "Create a new branch called 'feature'", completed: false, checkFn: state => state.branches.some(b => b.name === 'feature') },
+                        { text: "Switch to the 'feature' branch", completed: false, checkFn: state => state.currentBranch === 'feature' },
+                        { text: "Create and commit a new file in this branch", completed: false, checkFn: state => {
+                            const featureBranch = state.branches.find(b => b.name === 'feature');
+                            if (!featureBranch) return false;
+                            return featureBranch.commits.length > 0 && featureBranch.commits[featureBranch.commits.length - 1].files.includes('feature.txt');
+                        }}
+                    ],
+                    hint: "Use 'git branch feature' to create a branch, 'git checkout feature' to switch to it, then add and commit a new file.",
+                    setupFn: (state) => {
+                        state.initialized = true;
+                        state.workingDirectory = ['file.txt'];
+                        state.staging = [];
+
+                        // Create master branch with one commit
+                        const initialCommit = {
+                            id: generateCommitId(),
+                            message: "Initial commit",
+                            files: ['file.txt'],
+                            parent: null
+                        };
+
+                        state.branches = [{
+                            name: 'master',
+                            commits: [initialCommit],
+                            head: initialCommit.id
+                        }];
+
+                        state.commits = [initialCommit];
+                        state.currentBranch = 'master';
+                        state.head = initialCommit.id;
+                    }
+                },
+                {
+                    title: "Merging Changes",
+                    description: "Merge your feature branch back into the master branch.",
+                    objectives: [
+                        { text: "Switch back to the master branch", completed: false, checkFn: state => state.currentBranch === 'master' },
+                        { text: "Merge the 'feature' branch into master", completed: false, checkFn: state => {
+                            const masterBranch = state.branches.find(b => b.name === 'master');
+                            if (!masterBranch) return false;
+                            // Check if master's commit history includes commits from feature branch after merge
+                            const masterCommitIds = new Set(masterBranch.commits.map(c => c.id));
+                            const featureBranch = state.branches.find(b => b.name === 'feature');
+                            if (!featureBranch) return false;
+                            return featureBranch.commits.some(commit => masterCommitIds.has(commit.id));
+                        }}
+                    ],
+                    hint: "Use 'git checkout master' to switch back to master, then 'git merge feature' to merge your changes.",
+                    setupFn: (state) => {
+                        state.initialized = true;
+
+                        // Create initial commit
+                        const initialCommit = {
+                            id: generateCommitId(),
+                            message: "Initial commit",
+                            files: ['file.txt'],
+                            parent: null
+                        };
+
+                        // Create feature branch
+                        state.branches.push({
+                            name: 'feature',
+                            commits: [initialCommit],
+                            head: initialCommit.id // Feature branch starts same as master
+                        });
+
+                        state.branches[0].head = initialCommit.id; // Master branch head
+                        state.commits = [initialCommit];
+                        state.currentBranch = 'master';
+                        state.head = initialCommit.id;
+                        state.workingDirectory = ['file.txt'];
+                        state.staging = [];
+
+                        // Simulate work on feature branch before merge challenge starts
+                        gitCommandProcessor(state, 'git checkout feature');
+                        gitCommandProcessor(state, 'touch feature.txt');
+                        gitCommandProcessor(state, 'git add feature.txt');
+                        gitCommandProcessor(state, 'git commit -m "Add feature file"');
+                        gitCommandProcessor(state, 'git checkout master'); // Back to master for the challenge
+                    }
+                },
+                {
+                    title: "Conflict Resolution",
+                    description: "Resolve a merge conflict between two branches that modified the same file.",
+                    objectives: [
+                        { text: "Switch to the master branch", completed: false, checkFn: state => state.currentBranch === 'master' },
+                        { text: "Merge the 'bugfix' branch (which will create conflict)", completed: false, checkFn: state => state.mergeAttempted },
+                        { text: "Resolve the conflict and complete the merge", completed: false, checkFn: state => {
+                            return !state.hasConflict && state.branches.find(b => b.name === 'master').commits.some(c => c.message.includes("Merge branch 'bugfix'"));
+                        }}
+                    ],
+                    hint: "After the conflict, edit the conflicting file, add it with 'git add', then complete with 'git commit'.",
+                    setupFn: (state) => {
+                        state.initialized = true;
+                        state.mergeAttempted = false;
+                        state.hasConflict = false;
+                        state.workingDirectory = ['shared.txt'];
+                        state.staging = [];
+
+                        // Create initial commit
+                        const initialCommit = {
+                            id: generateCommitId(),
+                            message: "Initial commit",
+                            files: ['shared.txt'],
+                            parent: null
+                        };
+
+                        // Create master branch commit that modifies shared.txt
+                        const masterCommit = {
+                            id: generateCommitId(),
+                            message: "Update in master",
+                            files: ['shared.txt'],
+                            parent: initialCommit.id,
+                            content: "Content in master branch\n"
+                        };
+
+                        // Create bugfix branch that also modifies shared.txt
+                        const bugfixCommit = {
+                            id: generateCommitId(),
+                            message: "Fix bug in shared file",
+                            files: ['shared.txt'],
+                            parent: initialCommit.id,
+                            content: "Content in bugfix branch\n"
+                        };
+
+                        state.branches = [
+                            {
+                                name: 'master',
+                                commits: [initialCommit, masterCommit],
+                                head: masterCommit.id
+                            },
+                            {
+                                name: 'bugfix',
+                                commits: [initialCommit, bugfixCommit],
+                                head: bugfixCommit.id
+                            }
+                        ];
+
+                        state.commits = [initialCommit, masterCommit, bugfixCommit];
+                        state.currentBranch = 'bugfix';
+                        state.head = bugfixCommit.id;
+
+                        // Simulate checkout to master to start merge challenge from master
+                        gitCommandProcessor(state, 'git checkout master');
+                    }
+                },
+                {
+                    title: "Rewriting History with Reset",
+                    description: "Use `git reset` to undo your last commit.",
+                    objectives: [
+                        { text: "Perform a reset to undo the last commit", completed: false, checkFn: state => state.commits.length === 1 }
+                    ],
+                    hint: "Use 'git reset --hard HEAD~1' to reset to the commit before HEAD.",
+                    setupFn: (state) => {
+                        state.initialized = true;
+                        state.workingDirectory = ['file1.txt', 'file2.txt'];
+                        state.staging = [];
+
+                        // Initial commit
+                        const initialCommit = {
+                            id: generateCommitId(),
+                            message: "Initial commit",
+                            files: ['file1.txt'],
+                            parent: null
+                        };
+                        // Second commit
+                        const secondCommit = {
+                            id: generateCommitId(),
+                            message: "Add file2",
+                            files: ['file2.txt'],
+                            parent: initialCommit.id
+                        };
+
+                        state.branches = [{
+                            name: 'master',
+                            commits: [initialCommit, secondCommit],
+                            head: secondCommit.id
+                        }];
+                        state.commits = [initialCommit, secondCommit];
+                        state.currentBranch = 'master';
+                        state.head = secondCommit.id;
+                    }
+                },
+                {
+                    title: "Undoing Changes with Revert",
+                    description: "Use `git revert` to safely undo a commit by creating a new commit that reverses the changes.",
+                    objectives: [
+                        { text: "Revert the last commit", completed: false, checkFn: state => state.commits.length === 3 && state.commits[2].message.startsWith('Revert') }
+                    ],
+                    hint: "Use 'git revert HEAD' to revert the latest commit.",
+                    setupFn: (state) => {
+                        state.initialized = true;
+                        state.workingDirectory = ['file1.txt', 'file2.txt'];
+                        state.staging = [];
+
+                        // Initial commit
+                        const initialCommit = {
+                            id: generateCommitId(),
+                            message: "Initial commit",
+                            files: ['file1.txt'],
+                            parent: null
+                        };
+                        // Second commit
+                        const secondCommit = {
+                            id: generateCommitId(),
+                            message: "Add file2",
+                            files: ['file2.txt'],
+                            parent: initialCommit.id
+                        };
+
+                        state.branches = [{
+                            name: 'master',
+                            commits: [initialCommit, secondCommit],
+                            head: secondCommit.id
+                        }];
+                        state.commits = [initialCommit, secondCommit];
+                        state.currentBranch = 'master';
+                        state.head = secondCommit.id;
+                    }
+                },
+                {
+                    title: "Stashing Changes",
+                    description: "Use `git stash` to temporarily save changes you don't want to commit immediately.",
+                    objectives: [
+                        { text: "Stash your current changes", completed: false, checkFn: state => state.stashedChanges.length > 0 },
+                        { text: "Apply the stashed changes back", completed: false, checkFn: state => state.stashedChanges.length === 0 && state.workingDirectory.includes('modified_file.txt') }
+                    ],
+                    hint: "Use 'git stash' to save changes, and 'git stash pop' to reapply them.",
+                    setupFn: (state) => {
+                        state.initialized = true;
+                        state.workingDirectory = ['file1.txt', 'modified_file.txt']; // Assume modified_file.txt is modified
+                        state.staging = [];
+                        state.stashedChanges = [];
+                        // Initial commit
+                        const initialCommit = {
+                            id: generateCommitId(),
+                            message: "Initial commit",
+                            files: ['file1.txt'],
+                            parent: null
+                        };
+
+                        state.branches = [{
+                            name: 'master',
+                            commits: [initialCommit],
+                            head: initialCommit.id
+                        }];
+                        state.commits = [initialCommit];
+                        state.currentBranch = 'master';
+                        state.head = initialCommit.id;
+                    }
+                },
+                {
+                    title: "Exploring Commit History with Log",
+                    description: "Use `git log` to view the commit history and understand the project's evolution.",
+                    objectives: [
+                        { text: "Use 'git log' command", completed: false, checkFn: state => state.terminalOutput.toLowerCase().includes('commit') && state.terminalOutput.toLowerCase().includes('author') && state.terminalOutput.toLowerCase().includes('date') }
+                    ],
+                    hint: "Simply type 'git log' in the terminal.",
+                    setupFn: (state) => {
+                        state.initialized = true;
+                        state.workingDirectory = ['file1.txt', 'file2.txt'];
+                        state.staging = [];
+
+                        // Initial commit
+                        const initialCommit = {
+                            id: generateCommitId(),
+                            message: "Initial commit",
+                            files: ['file1.txt'],
+                            parent: null
+                        };
+                        // Second commit
+                        const secondCommit = {
+                            id: generateCommitId(),
+                            message: "Add file2",
+                            files: ['file2.txt'],
+                            parent: initialCommit.id
+                        };
+
+                        state.branches = [{
+                            name: 'master',
+                            commits: [initialCommit, secondCommit],
+                            head: secondCommit.id
+                        }];
+                        state.commits = [initialCommit, secondCommit];
+                        state.currentBranch = 'master';
+                        state.head = secondCommit.id;
+                    }
+                },
+                {
+                    title: "Tagging Releases",
+                    description: "Use `git tag` to mark specific points in history as important (like releases).",
+                    objectives: [
+                        { text: "Create a tag named 'v1.0'", completed: false, checkFn: state => state.tags.includes('v1.0') }
+                    ],
+                    hint: "Use 'git tag v1.0' to create a tag.",
+                    setupFn: (state) => {
+                        state.initialized = true;
+                        state.workingDirectory = ['file1.txt'];
+                        state.staging = [];
+                        state.tags = [];
+                        // Initial commit
+                        const initialCommit = {
+                            id: generateCommitId(),
+                            message: "Initial commit",
+                            files: ['file1.txt'],
+                            parent: null
+                        };
+
+                        state.branches = [{
+                            name: 'master',
+                            commits: [initialCommit],
+                            head: initialCommit.id
+                        }];
+                        state.commits = [initialCommit];
+                        state.currentBranch = 'master';
+                        state.head = initialCommit.id;
+                    }
+                },
+                {
+                    title: "Inspecting the Repository Status",
+                    description: "Use `git status` to check the state of your working directory and staging area.",
+                    objectives: [
+                        { text: "Use 'git status' command", completed: false, checkFn: state => state.terminalOutput.toLowerCase().includes('working tree') }
+                    ],
+                    hint: "Simply type 'git status' in the terminal.",
+                    setupFn: (state) => {
+                        state.initialized = true;
+                        state.workingDirectory = ['file1.txt', 'modified_file.txt', 'new_file.txt']; // Assume modified_file.txt is modified, new_file.txt is new
+                        state.staging = ['modified_file.txt']; // modified_file.txt is staged
+                        // Initial commit
+                        const initialCommit = {
+                            id: generateCommitId(),
+                            message: "Initial commit",
+                            files: ['file1.txt'],
+                            parent: null
+                        };
+
+                        state.branches = [{
+                            name: 'master',
+                            commits: [initialCommit],
+                            head: initialCommit.id
+                        }];
+                        state.commits = [initialCommit];
+                        state.currentBranch = 'master';
+                        state.head = initialCommit.id;
+                    }
+                }
+            ],
+            terminalOutput: "<div>Welcome to Git Command Challenge!</div><div>Type 'help' to see available commands or 'next' to skip to the next challenge.</div>",
+            workingDirectory: [],
+            staging: [],
+            commits: [],
+            branches: [],
+            currentBranch: 'master',
+            head: null,
+            initialized: false,
+            stashedChanges: [],
+            tags: [],
+            mergeAttempted: false,
+            hasConflict: false
+        };
+
+        // Helper Functions
+        function generateCommitId() {
+            return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        }
+
+        function updateChallengeInfo() {
+            const currentChallenge = gameState.challenges[gameState.currentLevel];
+            document.getElementById('challenge-title').textContent = currentChallenge.title;
+            document.getElementById('challenge-description').textContent = currentChallenge.description;
+            document.getElementById('current-level').textContent = `Level ${gameState.currentLevel + 1}/${gameState.challenges.length}`;
+        }
+
+        function updateProgress() {
+            const currentChallenge = gameState.challenges[gameState.currentLevel];
+            const completedObjectives = currentChallenge.objectives.filter(obj => obj.completed).length;
+            const totalObjectives = currentChallenge.objectives.length;
+            const completionPercentage = (completedObjectives / totalObjectives) * 100;
+            document.getElementById('completion-status').textContent = `${Math.round(completionPercentage)}% Complete`;
+            document.getElementById('progress-fill').style.width = `${completionPercentage}%`;
+        }
+
+        function updateTerminalOutput(message, type = 'command') {
+            let messageClass = '';
+            if (type === 'error') messageClass = 'command-error';
+            else if (type === 'success') messageClass = 'command-success';
+
+            const outputDiv = document.createElement('div');
+            outputDiv.className = 'command-output ' + messageClass;
+            outputDiv.innerHTML = message;
+            document.getElementById('terminal-output').appendChild(outputDiv);
+
+            const terminalOutputElement = document.getElementById('terminal-output');
+            terminalOutputElement.scrollTop = terminalOutputElement.scrollHeight; // Scroll to bottom
+        }
+
+        function updateFileList() {
+            const fileListDiv = document.getElementById('file-list');
+            fileListDiv.innerHTML = ''; // Clear current list
+
+            gameState.workingDirectory.forEach(file => {
+                const fileDiv = document.createElement('div');
+                fileDiv.className = 'file';
+                let fileIcon = '<span class="file-icon"></span>'; // Default file icon
+                if (file.endsWith('.txt') || file.endsWith('.js') || file.endsWith('.html') || file.endsWith('.css')) {
+                    fileIcon = '<span class="file-icon"></span>'; // Document icon
+                }
+                fileDiv.innerHTML = `${fileIcon} ${file}`;
+
+                if (gameState.staging.includes(file)) {
+                    fileDiv.classList.add('staged');
+                } else if (gameState.workingDirectory.includes(file) && !gameState.commits.some(commit => commit.files.includes(file))) {
+                    fileDiv.classList.add('modified'); // Consider "modified" as untracked if not in commits yet for simplicity in these levels
+                }
+
+                fileListDiv.appendChild(fileDiv);
+            });
+        }
+
+        function updateGraph() {
+            const graphDiv = document.getElementById('git-graph');
+            graphDiv.innerHTML = ''; // Clear existing graph
+            graphDiv.style.transform = `scale(${gameState.zoom}) translate(${gameState.panOffset.x}px, ${gameState.panOffset.y}px)`;
+
+            if (!gameState.initialized || gameState.commits.length === 0) {
+                const noRepoMessage = document.createElement('div');
+                noRepoMessage.textContent = "No Git repository initialized or no commits yet.";
+                noRepoMessage.style.textAlign = 'center';
+                noRepoMessage.style.padding = '20px';
+                graphDiv.appendChild(noRepoMessage);
+                return;
+            }
+
+            const commitNodes = {};
+            const branchHeads = {};
+            const commitPositions = {}; // Store positions to draw connectors correctly
+            let commitCount = 0;
+            const commitRadius = 15;
+            const verticalSpacing = 70;
+            const horizontalSpacing = 100;
+
+            // Prepare branch heads for labels and commit nodes
+            gameState.branches.forEach(branch => {
+                const headCommitId = branch.head;
+                if (headCommitId) {
+                    branchHeads[branch.name] = headCommitId;
+                }
+                branch.commits.forEach(commit => {
+                    commitNodes[commit.id] = commit;
+                });
+            });
+
+            const commitIds = Object.keys(commitNodes);
+            commitIds.sort((a, b) => gameState.commits.findIndex(c => c.id === a) - gameState.commits.findIndex(c => c.id === b));
+
+            // Position commits in a simple linear layout for now, branches will need more complex layout
+            commitIds.forEach((commitId, index) => {
+                const commit = commitNodes[commitId];
+                const x = 50 + index * horizontalSpacing;
+                const y = 50 + verticalSpacing; // Simple single line layout for now
+                commitPositions[commitId] = { x, y };
+
+                const commitElement = document.createElement('div');
+                commitElement.className = 'commit';
+                commitElement.textContent = index + 1; // Simple commit number
+                commitElement.style.left = `${x - commitRadius}px`;
+                commitElement.style.top = `${y - commitRadius}px`;
+                commitElement.addEventListener('mouseover', (event) => showTooltip(event, `Commit ID: ${commit.id}<br>Message: ${commit.message}`));
+                commitElement.addEventListener('mouseout', hideTooltip);
+
+                if (commitId === gameState.head) {
+                    commitElement.classList.add('head');
+                }
+                graphDiv.appendChild(commitElement);
+            });
+
+            // Draw branch labels
+            gameState.branches.forEach(branch => {
+                if (branch.head && commitPositions[branch.head]) {
+                    const labelX = commitPositions[branch.head].x;
+                    const labelY = commitPositions[branch.head].y - commitRadius - 20; // Above the commit
+
+                    const labelElement = document.createElement('div');
+                    labelElement.className = 'branch-label';
+                    labelElement.textContent = branch.name;
+                    labelElement.style.left = `${labelX - 25}px`; // Center label above commit
+                    labelElement.style.top = `${labelY}px`;
+                    if (branch.name === 'master') labelElement.classList.add('master');
+                    if (branch.name === gameState.currentBranch) labelElement.classList.add('head');
+                    graphDiv.appendChild(labelElement);
+                }
+            });
+
+            // Draw commit connectors (simple linear connectors for now)
+            commitIds.forEach((commitId, index) => {
+                const commit = commitNodes[commitId];
+                if (commit.parent && commitPositions[commit.parent] && commitPositions[commitId]) {
+                    const startPos = commitPositions[commit.parent];
+                    const endPos = commitPositions[commitId];
+                    const connectorLength = Math.sqrt(Math.pow(endPos.x - startPos.x, 2) + Math.pow(endPos.y - startPos.y, 2));
+                    const connectorAngle = Math.atan2(endPos.y - startPos.y, endPos.x - startPos.x) * (180 / Math.PI);
+
+                    const connectorElement = document.createElement('div');
+                    connectorElement.className = 'branch-connector';
+                    connectorElement.style.width = `${connectorLength}px`;
+                    connectorElement.style.left = `${startPos.x}px`;
+                    connectorElement.style.top = `${startPos.y}px`;
+                    connectorElement.style.transform = `rotate(${connectorAngle}deg)`;
+                    graphDiv.appendChild(connectorElement);
+                }
+            });
+
+            // Adjust graph container size based on content (optional, for better scroll behavior)
+            const graphRect = graphDiv.getBoundingClientRect();
+            const containerRect = document.getElementById('git-graph').parentElement.getBoundingClientRect();
+            if (graphRect.width > containerRect.width) {
+                document.getElementById('git-graph').parentElement.style.width = `${graphRect.width + 40}px`; // Add some padding
+            } else {
+                document.getElementById('git-graph').parentElement.style.width = '100%';
+            }
+            if (graphRect.height > containerRect.height) {
+                document.getElementById('git-graph').parentElement.style.height = `${graphRect.height + 40}px`;
+            } else {
+                document.getElementById('git-graph').parentElement.style.height = '350px'; // Default height
+            }
+        }
+
+        function checkObjectives() {
+            const currentChallenge = gameState.challenges[gameState.currentLevel];
+            let allObjectivesCompleted = true;
+            currentChallenge.objectives.forEach(objective => {
+                if (!objective.completed) {
+                    objective.completed = objective.checkFn(gameState);
+                }
+                if (!objective.completed) {
+                    allObjectivesCompleted = false;
+                }
+            });
+
+            updateProgress();
+
+            if (allObjectivesCompleted) {
+                showSuccessModal();
+                if (!gameState.completedLevels.includes(gameState.currentLevel)) {
+                    gameState.completedLevels.push(gameState.currentLevel);
+                    updateLevelButtons(); // Update level buttons to show completion status
+                }
+                return true;
+            }
+            return false;
+        }
+
+
+        function gitCommandProcessor(state, command) {
+            const parts = command.trim().split(/\s+/);
+            const baseCommand = parts[0];
+            const args = parts.slice(1);
+
+            if (baseCommand === 'git') {
+                const gitSubcommand = args[0];
+                const gitArgs = args.slice(1);
+
+                switch (gitSubcommand) {
+                    case 'init':
+                        if (!state.initialized) {
+                            state.initialized = true;
+                            state.branches = [{ name: 'master', commits: [], head: null }];
+                            state.currentBranch = 'master';
+                            updateTerminalOutput('<div class="command-success">Initialized empty Git repository in .git/</div>', 'success');
+                        } else {
+                            updateTerminalOutput('<div class="command-error">Reinitialized existing Git repository in .git/</div>', 'error');
+                        }
+                        break;
+
+                    case 'status':
+                        if (!state.initialized) {
+                            updateTerminalOutput('<div class="command-error">fatal: not a git repository (or any of the parent directories): .git</div>', 'error');
+                            return;
+                        }
+                        let statusOutput = '<div>On branch ' + state.currentBranch + '</div>';
+                        let changedFiles = [];
+                        state.workingDirectory.forEach(file => {
+                            if (!state.commits.some(commit => commit.files.includes(file)) && !state.staging.includes(file)) { //Untracked - simplified logic
+                                changedFiles.push(`<div class="command-output">Untracked files:<br>  (use "git add <file>..." to include in what will be committed)<br><br>  new file:   ${file}</div>`);
+                            } else if (state.staging.includes(file)) {
+                                changedFiles.push(`<div class="command-output">Changes to be committed:<br>  (use "git restore --staged <file>..." to unstage)<br><br>  staged:   ${file}</div>`);
+                            } else if (state.workingDirectory.includes(file) && state.commits.some(commit => commit.files.includes(file)) && !state.staging.includes(file)) { //Modified - simplified
+                                changedFiles.push(`<div class="command-output">Changes not staged for commit:<br>  (use "git add <file>..." to update what will be committed)<br>  (use "git restore <file>..." to discard changes in working directory)<br><br>  modified:   ${file}</div>`);
+                            }
+                        });
+
+                        if (changedFiles.length === 0 && state.staging.length === 0) {
+                            statusOutput += '<div>nothing to commit, working tree clean</div>';
+                        } else {
+                            statusOutput += changedFiles.join('');
+                        }
+                        updateTerminalOutput(statusOutput);
+                        break;
+
+                    case 'add':
+                        if (!state.initialized) {
+                            updateTerminalOutput('<div class="command-error">fatal: not a git repository (or any of the parent directories): .git</div>', 'error');
+                            return;
+                        }
+                        const filesToAdd = gitArgs;
+                        if (filesToAdd.length === 0) {
+                            updateTerminalOutput('<div class="command-error">What should I add?</div>', 'error');
+                        } else {
+                            filesToAdd.forEach(file => {
+                                if (state.workingDirectory.includes(file)) {
+                                    if (!state.staging.includes(file)) {
+                                        state.staging.push(file);
+                                        updateTerminalOutput(`<div class="command-success">Staged ${file}</div>`, 'success');
+                                    } else {
+                                        updateTerminalOutput(`<div class="command-output">${file} is already staged.</div>`);
+                                    }
+                                } else {
+                                    updateTerminalOutput(`<div class="command-error">error: pathspec '${file}' did not match any files</div>`, 'error');
+                                }
+                            });
+                        }
+                        break;
+
+                    case 'commit':
+                        if (!state.initialized) {
+                            updateTerminalOutput('<div class="command-error">fatal: not a git repository (or any of the parent directories): .git</div>', 'error');
+                            return;
+                        }
+                        const messageArg = args.find(arg => arg.startsWith('-m'));
+                        if (!messageArg) {
+                            updateTerminalOutput('<div class="command-error">Please provide a commit message using -m "message".</div>', 'error');
+                            return;
+                        }
+                        const commitMessage = messageArg.substring(3).slice(1, -1); // Extract message from -m "message"
+                        if (state.staging.length > 0) {
+                            const newCommit = {
+                                id: generateCommitId(),
+                                message: commitMessage,
+                                files: [...state.staging], // Copy staged files
+                                parent: state.head
+                            };
+                            state.commits.push(newCommit);
+                            const currentBranchObj = state.branches.find(branch => branch.name === state.currentBranch);
+                            if (currentBranchObj) {
+                                currentBranchObj.commits.push(newCommit);
+                                currentBranchObj.head = newCommit.id;
+                            }
+                            state.head = newCommit.id;
+                            state.staging = []; // Clear staging after commit
+                            updateTerminalOutput(`<div class="command-success">[${state.currentBranch} ${newCommit.id.substring(0, 7)}] ${commitMessage}<br> ${newCommit.files.length} file${newCommit.files.length === 1 ? '' : 's'} changed</div>`, 'success');
+                        } else {
+                            updateTerminalOutput('<div class="command-error">nothing to commit, working tree clean</div>', 'error');
+                        }
+                        break;
+
+                    case 'branch':
+                        if (!state.initialized) {
+                            updateTerminalOutput('<div class="command-error">fatal: not a git repository (or any of the parent directories): .git</div>', 'error');
+                            return;
+                        }
+                        if (gitArgs.length === 0) {
+                            let branchListOutput = '';
+                            state.branches.forEach(branch => {
+                                const prefix = branch.name === state.currentBranch ? '* ' : '  ';
+                                branchListOutput += `<div>${prefix}${branch.name}</div>`;
+                            });
+                            updateTerminalOutput(branchListOutput);
+                        } else {
+                            const newBranchName = gitArgs[0];
+                            if (state.branches.some(branch => branch.name === newBranchName)) {
+                                updateTerminalOutput(`<div class="command-error">fatal: A branch named '${newBranchName}' already exists.</div>`, 'error');
+                            } else {
+                                state.branches.push({ name: newBranchName, commits: [...state.branches.find(b => b.name === state.currentBranch).commits], head: state.head }); //start from current branch head
+                                updateTerminalOutput(`<div class="command-success">Created branch ${newBranchName}</div>`, 'success');
+                            }
+                        }
+                        break;
+
+                    case 'checkout':
+                        if (!state.initialized) {
+                            updateTerminalOutput('<div class="command-error">fatal: not a git repository (or any of the parent directories): .git</div>', 'error');
+                            return;
+                        }
+                        const branchNameToCheckout = gitArgs[0];
+                        if (state.branches.some(branch => branch.name === branchNameToCheckout)) {
+                            state.currentBranch = branchNameToCheckout;
+                            state.head = state.branches.find(b => b.name === branchNameToCheckout).head;
+                            updateTerminalOutput(`<div class="command-success">Switched to branch '${branchNameToCheckout}'</div>`, 'success');
+                        } else {
+                            updateTerminalOutput(`<div class="command-error">error: branch '${branchNameToCheckout}' not found</div>`, 'error');
+                        }
+                        break;
+
+                    case 'merge':
+                        if (!state.initialized) {
+                            updateTerminalOutput('<div class="command-error">fatal: not a git repository (or any of the parent directories): .git</div>', 'error');
+                            return;
+                        }
+                        const branchNameToMerge = gitArgs[0];
+                        const branchToMerge = state.branches.find(b => b.name === branchNameToMerge);
+                        const currentBranchObj = state.branches.find(b => b.name === state.currentBranch);
+
+                        if (!branchToMerge) {
+                            updateTerminalOutput(`<div class="command-error">fatal: branch '${branchNameToMerge}' not found</div>`, 'error');
+                            return;
+                        }
+                        if (branchNameToMerge === state.currentBranch) {
+                            updateTerminalOutput(`<div class="command-error">error: Cannot merge current branch into itself.</div>`, 'error');
+                            return;
+                        }
+
+                        state.mergeAttempted = true; // For objective checking
+
+                        // Simple merge simulation without conflict resolution logic for now (linear history merge)
+                        const commitsToMerge = branchToMerge.commits.filter(commit => !currentBranchObj.commits.some(c => c.id === commit.id));
+
+                        if (commitsToMerge.length > 0) {
+                            commitsToMerge.forEach(commit => {
+                                currentBranchObj.commits.push(commit);
+                                state.commits.push(commit); // Add to global commit list as well if not already there (though should be already)
+                            });
+                            currentBranchObj.head = branchToMerge.head; // Move head to the latest merged commit
+                            state.head = branchToMerge.head;
+
+                            updateTerminalOutput(`<div class="command-success">Successfully merged branch '${branchNameToMerge}' into '${state.currentBranch}'.</div>`, 'success');
+                            updateTerminalOutput(`<div class="command-output">Fast-forward merge.</div>`); // Simplified message
+                        } else {
+                            updateTerminalOutput(`<div class="command-output">Already up to date.</div>`);
+                        }
+                        break;
+                    case 'reset':
+                        if (!state.initialized) {
+                            updateTerminalOutput('<div class="command-error">fatal: not a git repository (or any of the parent directories): .git</div>', 'error');
+                            return;
+                        }
+                        if (args[0] === '--hard' && args[1] === 'HEAD~1') {
+                            if (state.branches.find(b => b.name === state.currentBranch).commits.length > 1) {
+                                state.branches.find(b => b.name === state.currentBranch).commits.pop(); // Remove last commit from branch commits
+                                state.commits.pop(); // Remove last commit from global commits
+                                state.head = state.branches.find(b => b.name === state.currentBranch).commits.length > 0 ? state.branches.find(b => b.name === state.currentBranch).commits.slice(-1)[0].id : null; // Update head
+                                updateTerminalOutput('<div class="command-success">HEAD is now at ' + state.head.substring(0, 7) + '</div>', 'success'); // Simplified message
+                            } else {
+                                updateTerminalOutput('<div class="command-error">Already at initial commit, cannot reset further.</div>', 'error');
+                            }
+                        } else {
+                            updateTerminalOutput('<div class="command-error">Usage: git reset --hard HEAD~1</div>', 'error');
+                        }
+                        break;
+                    case 'revert':
+                        if (!state.initialized) {
+                            updateTerminalOutput('<div class="command-error">fatal: not a git repository (or any of the parent directories): .git</div>', 'error');
+                            return;
+                        }
+                        if (args[0] === 'HEAD') {
+                            if (state.branches.find(b => b.name === state.currentBranch).commits.length > 0) {
+                                const commitToRevert = state.branches.find(b => b.name === state.currentBranch).commits.slice(-1)[0];
+                                const revertCommit = {
+                                    id: generateCommitId(),
+                                    message: `Revert "${commitToRevert.message}"`,
+                                    files: [...state.workingDirectory], // In real git, this is more complex, simplified here.
+                                    parent: state.head
+                                };
+                                state.commits.push(revertCommit);
+                                state.branches.find(b => b.name === state.currentBranch).commits.push(revertCommit);
+                                state.head = revertCommit.id;
+                                updateTerminalOutput(`<div class="command-success">[${state.currentBranch} ${revertCommit.id.substring(0, 7)}] Revert "${commitToRevert.message}"<br> 1 file changed</div>`, 'success'); // Simplified message
+                            } else {
+                                updateTerminalOutput('<div class="command-error">No commits to revert.</div>', 'error');
+                            }
+                        } else {
+                            updateTerminalOutput('<div class="command-error">Usage: git revert HEAD</div>', 'error');
+                        }
+                        break;
+                    case 'stash':
+                        if (!state.initialized) {
+                            updateTerminalOutput('<div class="command-error">fatal: not a git repository (or any of the parent directories): .git</div>', 'error');
+                            return;
+                        }
+                        if (gitArgs.length === 0) { // git stash
+                            if (state.workingDirectory.length > 0) { // Simplified check for changes
+                                state.stashedChanges.push({ files: [...state.workingDirectory], branch: state.currentBranch });
+                                state.workingDirectory = []; // Clear working directory for simplicity
+                                updateTerminalOutput('<div class="command-success">Saved working directory and index state WIP on ' + state.currentBranch + ': ...</div>', 'success');
+                                updateTerminalOutput('<div class="command-output">HEAD is now at ' + state.head.substring(0, 7) + ' ...</div>');
+                            } else {
+                                updateTerminalOutput('<div class="command-output">No local changes to save</div>');
+                            }
+                        } else if (gitArgs[0] === 'pop') { // git stash pop
+                            if (state.stashedChanges.length > 0) {
+                                const lastStash = state.stashedChanges.pop();
+                                state.workingDirectory = lastStash.files; // Restore files
+                                updateTerminalOutput('<div class="command-success">On branch ' + state.currentBranch + ': changes returned to working directory.</div>', 'success');
+                            } else {
+                                updateTerminalOutput('<div class="command-error">No stash entries found.</div>', 'error');
+                            }
+                        } else {
+                            updateTerminalOutput('<div class="command-error">Usage: git stash [pop]</div>', 'error');
+                        }
+                        break;
+                    case 'log':
+                        if (!state.initialized) {
+                            updateTerminalOutput('<div class="command-error">fatal: not a git repository (or any of the parent directories): .git</div>', 'error');
+                            return;
+                        }
+                        let logOutput = '';
+                        state.branches.find(b => b.name === state.currentBranch).commits.slice().reverse().forEach(commit => { // Reverse to show latest first
+                            logOutput += `<div class="command-output">commit ${commit.id}<br>Author: You <you@example.com><br>Date:   Now<br><br>    ${commit.message}</div><br>`; // Simplified log format
+                        });
+                        updateTerminalOutput(logOutput);
+                        break;
+                    case 'tag':
+                        if (!state.initialized) {
+                            updateTerminalOutput('<div class="command-error">fatal: not a git repository (or any of the parent directories): .git</div>', 'error');
+                            return;
+                        }
+                        if (gitArgs.length === 1) {
+                            const tagName = gitArgs[0];
+                            if (!state.tags.includes(tagName)) {
+                                state.tags.push(tagName);
+                                updateTerminalOutput(`<div class="command-success">Created tag '${tagName}'</div>`, 'success');
+                            } else {
+                                updateTerminalOutput(`<div class="command-output">Tag '${tagName}' already exists.</div>`);
+                            }
+                        } else {
+                            updateTerminalOutput('<div class="command-error">Usage: git tag <tagname></div>', 'error');
+                        }
+                        break;
+
+                    default:
+                        updateTerminalOutput(`<div class="command-error">git: '${gitSubcommand}' is not a git command. See 'git --help'</div>`, 'error');
+                }
+            } else if (baseCommand === 'help') {
+                showHelpModal();
+            } else if (baseCommand === 'next') {
+                if (gameState.currentLevel < gameState.challenges.length - 1) {
+                    gameState.currentLevel++;
+                    loadLevel(gameState.currentLevel);
+                } else {
+                    updateTerminalOutput('<div>You have completed all challenges!</div>');
+                }
+            } else if (baseCommand === 'reset') {
+                loadLevel(gameState.currentLevel); // Reload current level to reset
+                updateTerminalOutput('<div>Challenge reset.</div>');
+            } else if (baseCommand === 'touch') { // Simulate file creation
+                const fileName = args[0];
+                if (fileName) {
+                    if (!state.workingDirectory.includes(fileName)) {
+                        state.workingDirectory.push(fileName);
+                        updateTerminalOutput(`<div class="command-success">Created file ${fileName}</div>`, 'success');
+                    } else {
+                        updateTerminalOutput(`<div class="command-output">File ${fileName} already exists.</div>`);
+                    }
+                } else {
+                    updateTerminalOutput('<div class="command-error">Usage: touch <filename></div>', 'error');
+                }
+            }
+            else if (baseCommand === 'edit') { // Simulate file editing
+                const fileName = args[0];
+                if (fileName && state.workingDirectory.includes(fileName)) {
+                     updateTerminalOutput(`<div class="command-success">Simulating editing of ${fileName}. File marked as modified.</div>`, 'success');
+                } else if (!fileName) {
+                    updateTerminalOutput('<div class="command-error">Usage: edit <filename></div>', 'error');
+                }
+                else {
+                    updateTerminalOutput(`<div class="command-error">File ${fileName} not found in working directory.</div>`, 'error');
+                }
+            }
+            else {
+                updateTerminalOutput(`<div class="command-error">Command not recognized: ${baseCommand}</div>`, 'error');
+            }
+
+            updateGraph();
+            updateFileList();
+            checkObjectives();
+        }
+
+
+        // Event Listeners and UI Handlers
+        document.getElementById('terminal-input').addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                const command = this.value;
+                if (command.trim() !== '') {
+                    updateTerminalOutput(`<div class="prompt-symbol">$</div><div>${command}</div>`);
+                    gitCommandProcessor(gameState, command);
+                    this.value = '';
+                }
+            }
+        });
+
+        document.getElementById('help-btn').addEventListener('click', showHelpModal);
+        document.getElementById('reset-btn').addEventListener('click', () => loadLevel(gameState.currentLevel));
+        document.getElementById('hint-button').addEventListener('click', () => {
+            document.getElementById('hints').classList.toggle('visible');
+        });
+        document.getElementById('zoom-in').addEventListener('click', () => {
+            gameState.zoom = Math.min(gameState.zoom + 0.1, 2); // Zoom in, limit to 2x
+            updateGraph();
+        });
+        document.getElementById('zoom-out').addEventListener('click', () => {
+            gameState.zoom = Math.max(gameState.zoom - 0.1, 0.5); // Zoom out, limit to 0.5x
+            updateGraph();
+        });
+
+        // Tooltip functions
+        let tooltipTimeout;
+        function showTooltip(event, text) {
+            const tooltipElement = document.getElementById('tooltip');
+            tooltipElement.innerHTML = text;
+            tooltipElement.style.left = `${event.pageX + 10}px`;
+            tooltipElement.style.top = `${event.pageY - 10}px`;
+            tooltipElement.classList.add('visible');
+            clearTimeout(tooltipTimeout); // Clear any pending hideTooltip calls
+        }
+
+        function hideTooltip() {
+            tooltipTimeout = setTimeout(() => { // Delay hiding slightly to prevent flickering
+                document.getElementById('tooltip').classList.remove('visible');
+            }, 100);
+        }
+
+        // Modal functions
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.add('visible');
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.remove('visible');
+        }
+
+        function showHelpModal() {
+            showModal('help-modal');
+        }
+
+        function showLevelModal() {
+            showModal('level-modal');
+        }
+
+        function showSuccessModal() {
+            const currentChallenge = gameState.challenges[gameState.currentLevel];
+            document.getElementById('success-message').textContent = 'Challenge Completed: ' + currentChallenge.title + '!';
+            document.getElementById('success-details').textContent = 'Well done on mastering this Git concept. ' + (currentChallenge.successDetails || '');
+            showModal('success-modal');
+        }
+
+        // Close modal buttons
+        document.getElementById('close-help').addEventListener('click', () => hideModal('help-modal'));
+        document.getElementById('close-level').addEventListener('click', () => hideModal('level-modal'));
+        document.getElementById('close-success').addEventListener('click', () => hideModal('success-modal'));
+        document.getElementById('next-challenge').addEventListener('click', () => {
+            hideModal('success-modal');
+            if (gameState.currentLevel < gameState.challenges.length - 1) {
+                gameState.currentLevel++;
+                loadLevel(gameState.currentLevel);
+            } else {
+                updateTerminalOutput('<div>Congratulations! You have completed all challenges.</div>');
+            }
+        });
+
+        // Level Selection Modal
+        function populateLevelSelector() {
+            const levelSelectorDiv = document.getElementById('level-selector');
+            gameState.challenges.forEach((challenge, index) => {
+                const levelButton = document.createElement('button');
+                levelButton.className = 'level-btn';
+                levelButton.textContent = `Level ${index + 1}: ${challenge.title}`;
+                levelButton.addEventListener('click', () => {
+                    loadLevel(index);
+                    hideModal('level-modal');
+                });
+                if (gameState.completedLevels.includes(index)) {
+                    levelButton.classList.add('completed');
+                }
+                levelSelectorDiv.appendChild(levelButton);
+            });
+        }
+
+        function updateLevelButtons() {
+            const levelButtons = document.querySelectorAll('#level-selector .level-btn');
+            levelButtons.forEach((button, index) => {
+                if (gameState.completedLevels.includes(index)) {
+                    button.classList.add('completed');
+                } else {
+                    button.classList.remove('completed');
+                }
+            });
+        }
+
+        // Level Loading
+        function loadLevel(levelIndex) {
+            gameState.currentLevel = levelIndex;
+            const currentChallenge = gameState.challenges[levelIndex];
+            currentChallenge.setupFn(gameState); // Reset game state for the level
+            gameState.terminalOutput = "<div>Welcome to Git Command Challenge!</div><div>Type 'help' to see available commands or 'next' to skip to the next challenge.</div>";
+            document.getElementById('terminal-output').innerHTML = gameState.terminalOutput; // Clear terminal output
+
+            updateChallengeInfo();
+            updateProgress();
+            updateGraph();
+            updateFileList();
+            document.getElementById('hints').textContent = currentChallenge.hint;
+            document.getElementById('hints').classList.remove('visible'); // Hide hints on level load
+        }
+
+        // Initial Setup
+        document.addEventListener('DOMContentLoaded', () => {
+            populateLevelSelector();
+            loadLevel(0); // Load the first level on page load
+        });
+    </script>
+</body>
+</html>
